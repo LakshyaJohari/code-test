@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router(); // Create an Express router instance
 const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
 const jwt = require('jsonwebtoken'); // Import jsonwebtoken for JWT creation
-const pool = require('../db');
+const pool = require('../config/db');
  // Import the PostgreSQL connection pool
 
 require('dotenv').config(); // Load environment variables from .env

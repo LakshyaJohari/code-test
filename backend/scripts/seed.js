@@ -1,9 +1,9 @@
-// scripts/seed.js
-require('dotenv').config({ path: './.env' }); // Load .env variables from the root of the backend project
-const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
+// Script to populate the database with initial test data.
+require('dotenv').config({ path: './.env' }); // Load environment variables
+const { Pool } = require('pg'); // PostgreSQL client
+const bcrypt = require('bcryptjs'); // For password hashing
 
-// Configure database connection (should match your config/db.js or .env)
+// Database connection configuration.
 const pool = new Pool({
     user: process.env.PGUSER,
     host: process.env.PGHOST,
@@ -12,21 +12,20 @@ const pool = new Pool({
     port: process.env.PGPORT,
 });
 
-// Function to hash password
+// Hashes a plain password.
 const hashPassword = async (password) => {
     const salt = await bcrypt.genSalt(10);
     return bcrypt.hash(password, salt);
 };
 
-// Main seeding function
+// Main function to seed the database.
 const seedDatabase = async () => {
-    let client; // Declare client here
+    let client;
     try {
-        client = await pool.connect();
+        client = await pool.connect(); // Get a database client from the pool
         console.log('Database client connected for seeding.');
 
-        // --- 1. Clear existing data (Optional, but good for re-seeding) ---
-        // Using CASCADE to also delete related records in other tables
+        // Clear existing data from tables (important for re-running the script)
         console.log('Clearing existing data...');
         await client.query('DELETE FROM attendance_records;');
         await client.query('DELETE FROM attendance_sessions;');
@@ -36,12 +35,11 @@ const seedDatabase = async () => {
         await client.query('DELETE FROM subjects;');
         await client.query('DELETE FROM faculties;');
         await client.query('DELETE FROM departments;');
-        // Note: If you have data in the 'users' table (which wasn't in our schema),
-        // you might need to delete it here too if it conflicts.
+        // If you had an old 'users' table that conflicts, uncomment the line below:
         // await client.query('DELETE FROM users;');
         console.log('Existing data cleared.');
 
-        // --- 2. Insert Departments ---
+        // Insert Departments and capture their generated IDs.
         console.log('Inserting departments...');
         const departmentRes1 = await client.query(`INSERT INTO departments (name) VALUES ('ECE') RETURNING department_id;`);
         const eceDepartmentId = departmentRes1.rows[0].department_id;
@@ -49,9 +47,9 @@ const seedDatabase = async () => {
         const itDepartmentId = departmentRes2.rows[0].department_id;
         const departmentRes3 = await client.query(`INSERT INTO departments (name) VALUES ('IT-BI') RETURNING department_id;`);
         const itbiDepartmentId = departmentRes3.rows[0].department_id;
-        console.log(`Departments inserted: ECE (<span class="math-inline">\{eceDepartmentId\}\), IT \(</span>{itDepartmentId}), IT-BI (${itbiDepartmentId})`);
+        console.log(`Departments inserted: ECE (${eceDepartmentId}), IT (${itDepartmentId}), IT-BI (${itbiDepartmentId})`);
 
-        // --- 3. Insert Faculties ---
+        // Insert Faculty and capture its generated ID.
         console.log('Inserting faculties...');
         const facultyPasswordHash = await hashPassword('testpassword');
         const facultyRes = await client.query(
@@ -61,10 +59,10 @@ const seedDatabase = async () => {
         const facultyId = facultyRes.rows[0].faculty_id;
         console.log(`Faculty inserted: Dr. Mukesh Adani (${facultyId})`);
 
-        // --- 4. Insert Subjects ---
+        // Insert Subjects and capture their generated IDs.
         console.log('Inserting subjects...');
         const subjectRes1 = await client.query(
-            `INSERT INTO  (subject_name, department_id, year, section, batch_name) VALUES ($1, $2, $3, $4, $5) RETURNING subject_id;`,
+            `INSERT INTO subjects (subject_name, department_id, year, section, batch_name) VALUES ($1, $2, $3, $4, $5) RETURNING subject_id;`,
             ['Data Structures', eceDepartmentId, 3, 'A', '3rd Year A Batch']
         );
         const dataStructuresSubjectId = subjectRes1.rows[0].subject_id;
@@ -74,9 +72,9 @@ const seedDatabase = async () => {
             ['Operating Systems', eceDepartmentId, 3, 'A', '3rd Year A Batch']
         );
         const operatingSystemsSubjectId = subjectRes2.rows[0].subject_id;
-        console.log(`Subjects inserted: Data Structures (<span class="math-inline">\{dataStructuresSubjectId\}\), Operating Systems \(</span>{operatingSystemsSubjectId})`);
+        console.log(`Subjects inserted: Data Structures (${dataStructuresSubjectId}), Operating Systems (${operatingSystemsSubjectId})`);
 
-        // --- 5. Insert Faculty-Subject Assignments ---
+        // Assign Faculty to Subjects.
         console.log('Inserting faculty-subject assignments...');
         await client.query(
             `INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES ($1, $2);`,
@@ -88,7 +86,7 @@ const seedDatabase = async () => {
         );
         console.log('Faculty-subject assignments created.');
 
-        // --- 6. Insert Students ---
+        // Insert a Student and capture its generated ID.
         console.log('Inserting students...');
         const studentRes = await client.query(
             `INSERT INTO students (roll_number, name, email, department_id, current_year, section) VALUES ($1, $2, $3, $4, $5, $6) RETURNING student_id;`,
@@ -97,7 +95,7 @@ const seedDatabase = async () => {
         const studentId = studentRes.rows[0].student_id;
         console.log(`Student inserted: Student One (${studentId})`);
 
-        // --- 7. Insert Student Enrollments ---
+        // Enroll Student in Subjects.
         console.log('Inserting student enrollments...');
         await client.query(
             `INSERT INTO enrollments (student_id, subject_id) VALUES ($1, $2);`,
@@ -109,7 +107,7 @@ const seedDatabase = async () => {
         );
         console.log('Student enrollments created.');
 
-        // --- 8. Insert Attendance Sessions & Records (for Calendar View) ---
+        // Insert Attendance Sessions and Records for calendar view.
         console.log('Inserting attendance sessions and records...');
         const sept5SessionRes = await client.query(
             `INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, status) VALUES ($1, $2, $3, $4, $5) RETURNING session_id;`,
@@ -150,13 +148,11 @@ const seedDatabase = async () => {
         console.error('Error seeding database:', error);
     } finally {
         if (client) {
-            client.release();
+            client.release(); // Release the client back to the pool
             console.log('Database client released.');
         }
-        // It's good practice to exit the process once seeding is done,
-        // especially for scripts that run once.
-        process.exit(0);
+        process.exit(0); // Exit the script process
     }
 };
 
-seedDatabase();
+seedDatabase(); // Call the seeding function to start.

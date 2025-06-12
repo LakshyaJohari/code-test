@@ -1,9 +1,5 @@
--- sql/schema.sql
-
--- Enable UUID generation (needed for gen_random_uuid())
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- departments table
 CREATE TABLE IF NOT EXISTS departments (
     department_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) UNIQUE NOT NULL,
@@ -11,7 +7,6 @@ CREATE TABLE IF NOT EXISTS departments (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- faculties table (for your faculty users)
 CREATE TABLE IF NOT EXISTS faculties (
     faculty_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -26,40 +21,37 @@ CREATE TABLE IF NOT EXISTS faculties (
         ON DELETE SET NULL
 );
 
--- subjects table
 CREATE TABLE IF NOT EXISTS subjects (
     subject_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_name VARCHAR(255) NOT NULL,
     department_id UUID NOT NULL,
     year INT NOT NULL,
     section VARCHAR(10) NOT NULL,
-    batch_name VARCHAR(50), -- Optional: If 'Batch Name' is different from Year/Section
+    batch_name VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_subject_department
         FOREIGN KEY(department_id)
         REFERENCES departments(department_id)
         ON DELETE RESTRICT,
-    UNIQUE (subject_name, department_id, year, section) -- Prevent duplicate subjects
+    UNIQUE (subject_name, department_id, year, section)
 );
 
--- faculty_subjects (junction table for many-to-many relationship between faculties and subjects)
 CREATE TABLE IF NOT EXISTS faculty_subjects (
     faculty_id UUID NOT NULL,
     subject_id UUID NOT NULL,
-    PRIMARY KEY (faculty_id, subject_id), -- Composite primary key
+    PRIMARY KEY (faculty_id, subject_id),
     FOREIGN KEY (faculty_id) REFERENCES faculties(faculty_id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
 );
 
--- students table
 CREATE TABLE IF NOT EXISTS students (
     student_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     roll_number VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
     department_id UUID NOT NULL,
-    current_year INT, -- The academic year the student is currently in
+    current_year INT,
     section VARCHAR(10),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -69,54 +61,48 @@ CREATE TABLE IF NOT EXISTS students (
         ON DELETE RESTRICT
 );
 
--- enrollments table (students enrolling in subjects)
 CREATE TABLE IF NOT EXISTS enrollments (
     enrollment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL,
     subject_id UUID NOT NULL,
     enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (student_id, subject_id), -- A student can enroll in a subject only once
+    UNIQUE (student_id, subject_id),
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
 );
 
--- Define ENUM type for attendance session status
 CREATE TYPE ATTENDANCE_STATUS AS ENUM ('open', 'closed', 'completed', 'cancelled');
 
--- attendance_sessions table
 CREATE TABLE IF NOT EXISTS attendance_sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_id UUID NOT NULL,
-    faculty_id UUID NOT NULL, -- Who initiated the session
+    faculty_id UUID NOT NULL,
     session_date DATE NOT NULL,
     start_time TIME WITH TIME ZONE NOT NULL,
     end_time TIME WITH TIME ZONE,
     status ATTENDANCE_STATUS DEFAULT 'open',
-    qr_code_data TEXT, -- If you plan to store QR code data
+    qr_code_data TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE,
     FOREIGN KEY (faculty_id) REFERENCES faculties(faculty_id) ON DELETE CASCADE
 );
 
--- Define ENUM type for individual attendance record status
 CREATE TYPE ATTENDANCE_RECORD_STATUS AS ENUM ('present', 'absent', 'late');
 
--- attendance_records table
 CREATE TABLE IF NOT EXISTS attendance_records (
     record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL,
     student_id UUID NOT NULL,
     status ATTENDANCE_RECORD_STATUS NOT NULL DEFAULT 'absent',
-    attended_at TIMESTAMP WITH TIME ZONE, -- When the student marked attendance
+    attended_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (session_id, student_id), -- A student can only have one record per session
+    UNIQUE (session_id, student_id),
     FOREIGN KEY (session_id) REFERENCES attendance_sessions(session_id) ON DELETE CASCADE,
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
 );
 
--- Add indexes for performance (optional but recommended for larger datasets)
 CREATE INDEX idx_faculties_email ON faculties(email);
 CREATE INDEX idx_subjects_department ON subjects(department_id);
 CREATE INDEX idx_students_roll_number ON students(roll_number);

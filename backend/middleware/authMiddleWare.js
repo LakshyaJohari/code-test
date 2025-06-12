@@ -1,51 +1,28 @@
-// quickmark-auth-backend/authMiddleware.js
-const jwt = require('jsonwebtoken');
-require('dotenv').config(); // Load environment variables
+// Middleware to authenticate requests using JWT.
+const { verifyToken } = require('../config/jwt'); // Import JWT verification utility
 
-// Middleware to authenticate JWT tokens from the Authorization header
-const authenticateToken = (req, res, next) => {
-    // Get the Authorization header from the request (e.g., "Bearer YOUR_TOKEN_HERE")
-    const authHeader = req.headers['authorization'];
-    // Extract the token part (the second part after "Bearer ")
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (token == null) {
-        // If no token is provided, the request is unauthorized
-        return res.status(401).json({ message: 'Authentication token required' });
+const authMiddleware = (req, res, next) => {
+    // Get token from 'Authorization' header (e.g., 'Bearer TOKEN')
+    const authHeader = req.header('Authorization');
+    if (!authHeader) {
+        return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
-    // Verify the token using the JWT_SECRET from your .env file
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            // If verification fails (e.g., token is invalid or expired)
-            console.error('JWT verification failed:', err.message);
-            return res.status(403).json({ message: 'Invalid or expired token' }); // Forbidden
+    const token = authHeader.split(' ')[1]; // Extract token part
+    if (!token) {
+        return res.status(401).json({ message: 'Token format is incorrect' });
+    }
+
+    try {
+        const decoded = verifyToken(token); // Verify and decode the token
+        if (!decoded) {
+            return res.status(401).json({ message: 'Token is not valid' });
         }
-        // If verification is successful, attach the decoded user payload to the request object
-        // This makes user information (like id, email, role) available to subsequent route handlers
-        req.user = user;
-        // Proceed to the next middleware or route handler in the chain
-        next();
-    });
+        req.user = decoded; // Attach decoded user info (id, email) to request object
+        next(); // Proceed to the next route handler or middleware
+    } catch (error) {
+        res.status(401).json({ message: 'Token is not valid', error: error.message });
+    }
 };
 
-// Middleware to authorize users based on their role
-const authorizeRoles = (roles) => {
-    return (req, res, next) => {
-        // This middleware assumes that 'authenticateToken' has already run
-        // and attached the user object to req.user.
-        if (!req.user || !req.user.role) {
-            // If user object or role is missing, deny access
-            return res.status(403).json({ message: 'Access denied: User role not found' });
-        }
-        // Check if the user's role is included in the array of allowed roles
-        if (!roles.includes(req.user.role)) {
-            // If the user's role is not allowed, deny access
-            return res.status(403).json({ message: 'Access denied: Insufficient permissions' });
-        }
-        // If the user has the required role, proceed to the next middleware or route handler
-        next();
-    };
-};
-
-module.exports = { authenticateToken, authorizeRoles };
+module.exports = authMiddleware;

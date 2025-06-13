@@ -2,7 +2,7 @@
 const express = require('express');
 const { getMyProfile, updateMyProfile, changeMyPassword } = require('../controllers/facultyController');
 const { getFacultySubjects } = require('../controllers/subjectController');
-const authMiddleware = require('../middleware/authMiddleWare'); // Middleware to protect routes
+const authMiddleware = require('../middleware/authMiddleware'); // Middleware to protect routes
 
 const router = express.Router();
 

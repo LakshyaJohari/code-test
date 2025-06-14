@@ -35,7 +35,7 @@ const seedDatabase = async () => {
         await client.query('DELETE FROM subjects;');
         await client.query('DELETE FROM faculties;');
         await client.query('DELETE FROM departments;');
-        // If you had an old 'users' table that conflicts, uncomment the line below:
+        // If you had an old 'users' table from previous attempts, uncomment the line below:
         // await client.query('DELETE FROM users;');
         console.log('Existing data cleared.');
 
@@ -141,6 +141,17 @@ const seedDatabase = async () => {
             [sept12SessionId, studentId, 'absent', null]
         );
         console.log(`Attendance for 2024-09-12 recorded (Absent).`);
+
+        // --- NEW ADMIN USER INSERTION ---
+        console.log('Inserting default admin user...');
+        const adminPasswordHash = await hashPassword('adminpass'); // Choose a strong password for admin
+        const adminRes = await client.query(
+            `INSERT INTO admins (name, email, password_hash) VALUES ($1, $2, $3) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, password_hash = EXCLUDED.password_hash RETURNING admin_id;`,
+            ['Super Admin', 'admin@example.com', adminPasswordHash]
+        );
+        const adminId = adminRes.rows[0].admin_id;
+        console.log(`Default admin inserted: admin@example.com (${adminId})`);
+        // --- END NEW ADMIN USER INSERTION ---
 
         console.log('All test data seeded successfully!');
 

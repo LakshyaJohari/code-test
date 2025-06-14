@@ -21,6 +21,16 @@ CREATE TABLE IF NOT EXISTS faculties (
         ON DELETE SET NULL
 );
 
+-- Add this table definition to your schema.sql
+CREATE TABLE IF NOT EXISTS admins (
+    admin_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS subjects (
     subject_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_name VARCHAR(255) NOT NULL,
@@ -108,3 +118,5 @@ CREATE INDEX idx_subjects_department ON subjects(department_id);
 CREATE INDEX idx_students_roll_number ON students(roll_number);
 CREATE INDEX idx_attendance_sessions_subject ON attendance_sessions(subject_id);
 CREATE INDEX idx_attendance_records_session_student ON attendance_records(session_id, student_id);
+CREATE INDEX IF NOT EXISTS idx_admins_email ON admins(email);
+-- You might want to add an index for email for quick lookups

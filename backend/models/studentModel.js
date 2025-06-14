@@ -39,7 +39,19 @@ const isStudentEnrolledInSubject = async (studentId, subjectId) => {
     }
 };
 
+const findStudentByRollNumber = async (rollNumber) => {
+    const query = 'SELECT * FROM students WHERE roll_number = $1';
+    try {
+        const result = await pool.query(query, [rollNumber]);
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error('Error finding student by roll number:', error);
+        throw new Error('Database query failed');
+    }
+};
+
 module.exports = {
     getStudentsBySubjectId,
-    isStudentEnrolledInSubject
+    isStudentEnrolledInSubject,
+    findStudentByRollNumber // ADD THIS
 };

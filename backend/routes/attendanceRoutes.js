@@ -7,7 +7,6 @@ const router = express.Router();
 
 router.post('/start', authMiddleware, startAttendanceSession); // Start a new attendance session
 router.post('/:session_id/end', authMiddleware, endAttendanceSession); // End an attendance session
-router.post('/:session_id/mark', authMiddleware, markStudentAttendance); // Faculty manually marks student attendance
 router.get('/subjects/:subject_id/students/:student_id/calendar', authMiddleware, getStudentCalendarAttendance); // Get attendance data for student calendar view
 
 module.exports = router;

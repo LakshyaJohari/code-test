@@ -17,6 +17,7 @@ const facultyRoutes = require('./routes/facultyRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const adminRoutes = require('./routes/adminRoutes'); // ADDED FOR ADMIN
+const studentRoutes = require('./routes/studentRoutes'); // <-- ADD THIS LINE
 
 // Use Routes - Ensure each main path maps to its correct router
 app.use('/api/auth', authRoutes); // Handles faculty login/register
@@ -24,6 +25,7 @@ app.use('/api/faculty', facultyRoutes); // Handles faculty profile & faculty-spe
 app.use('/api/subjects', subjectRoutes); // Handles GETs like /subjects/:id/students
 app.use('/api/attendance', attendanceRoutes); // Handles attendance operations
 app.use('/api/admin', adminRoutes); // Handles all admin-specific operations
+app.use('/api/student', studentRoutes); // <-- ADD THIS LINE
 
 app.get('/', (req, res) => {
     res.send('Welcome to the QuickMark API!');

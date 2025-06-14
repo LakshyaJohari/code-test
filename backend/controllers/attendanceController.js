@@ -17,12 +17,16 @@ const startAttendanceSession = async (req, res) => {
         }
         const sessionDate = new Date().toISOString().split('T')[0];
         const startTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+        
+        // Generate a simple unique code if not provided
+        const finalQrCodeData = qr_code_data || Math.random().toString(36).substring(2, 8).toUpperCase();
+
         const newSession = await attendanceModel.createAttendanceSession(
             subject_id,
             facultyId,
             sessionDate,
             startTime,
-            qr_code_data
+            finalQrCodeData // Pass the generated code
         );
         res.status(201).json({
             message: 'Attendance session started successfully!',
@@ -63,7 +67,7 @@ const endAttendanceSession = async (req, res) => {
 const markStudentAttendance = async (req, res) => {
     const { session_id } = req.params;
     const { student_id, status } = req.body;
-    const facultyId = req.user.id;
+    const facultyId = req.user.id; // From authMiddleware
 
     if (!student_id || !status) {
         return res.status(400).json({ message: 'Student ID and status are required.' });
@@ -109,11 +113,11 @@ const markStudentAttendance = async (req, res) => {
     }
 };
 
-// Fetches attendance data for a student in a subject for a calendar view.
+// Fetches attendance data for a student in a subject for a calendar view (used by faculty).
 const getStudentCalendarAttendance = async (req, res) => {
     const { subject_id, student_id } = req.params;
     const { month, year } = req.query;
-    const facultyId = req.user.id;
+    const facultyId = req.user.id; // From authMiddleware
 
     if (!month || !year || isNaN(parseInt(month)) || isNaN(parseInt(year))) {
         return res.status(400).json({ message: 'Month and Year query parameters are required and must be valid numbers.' });
@@ -164,9 +168,12 @@ const getStudentCalendarAttendance = async (req, res) => {
     }
 };
 
+// The markAttendanceByStudent function is removed from here
+// as it's now handled by studentController.js for authenticated students.
+
 module.exports = {
     startAttendanceSession,
     endAttendanceSession,
-    markStudentAttendance,
-    getStudentCalendarAttendance
+    markStudentAttendance, // This is faculty manual mark
+    getStudentCalendarAttendance // This is faculty view of student calendar
 };

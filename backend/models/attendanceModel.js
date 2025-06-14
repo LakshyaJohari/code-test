@@ -64,6 +64,22 @@ const findSessionById = async (sessionId) => {
     }
 };
 
+// Finds an open attendance session by QR code data.
+const findOpenSessionByQrCode = async (qrCodeData) => {
+    const query = `
+        SELECT * FROM attendance_sessions
+        WHERE qr_code_data = $1 AND status = 'open'
+        LIMIT 1;
+    `;
+    try {
+        const result = await pool.query(query, [qrCodeData]);
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error('Error finding open session by QR code in DB:', error.message);
+        throw new Error('Database query failed for open session by QR code');
+    }
+};
+
 // Creates or updates an attendance record for a student in a session (UPSERT).
 const createOrUpdateAttendanceRecord = async (sessionId, studentId, status, attendedAt = null) => {
     const query = `
@@ -111,6 +127,7 @@ module.exports = {
     closeAttendanceSession,
     findActiveSessionById,
     findSessionById,
+    findOpenSessionByQrCode,
     createOrUpdateAttendanceRecord,
-    getStudentAttendanceBySubjectAndDateRange
+    getStudentAttendanceBySubjectAndDateRange,
 };

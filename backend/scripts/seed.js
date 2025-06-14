@@ -68,7 +68,7 @@ const seedDatabase = async () => {
         const dataStructuresSubjectId = subjectRes1.rows[0].subject_id;
 
         const subjectRes2 = await client.query(
-            `INSERT INTO subjects (subject_name, department_id, year, section, batch_name) VALUES ($1, $2, $3, $4, $5) RETURNING subject_id;`,
+            `INSERT INTO subjects (subject_name, department_id, year, section, batch_name) VALUES ($1, $2, $3, $4, ($5)) RETURNING subject_id;`,
             ['Operating Systems', eceDepartmentId, 3, 'A', '3rd Year A Batch']
         );
         const operatingSystemsSubjectId = subjectRes2.rows[0].subject_id;
@@ -88,9 +88,10 @@ const seedDatabase = async () => {
 
         // Insert a Student and capture its generated ID.
         console.log('Inserting students...');
+        const studentPasswordHash = await hashPassword('studentpass'); // Password for Student One
         const studentRes = await client.query(
-            `INSERT INTO students (roll_number, name, email, department_id, current_year, section) VALUES ($1, $2, $3, $4, $5, $6) RETURNING student_id;`,
-            ['IEC2023021', 'Student One', 'student.one@example.com', eceDepartmentId, 3, 'A']
+        `INSERT INTO students (roll_number, name, email, password_hash, department_id, current_year, section) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING student_id;`,
+        ['IEC2023021', 'Student One', 'student.one@example.com', studentPasswordHash, eceDepartmentId, 3, 'A']
         );
         const studentId = studentRes.rows[0].student_id;
         console.log(`Student inserted: Student One (${studentId})`);
@@ -109,49 +110,52 @@ const seedDatabase = async () => {
 
         // Insert Attendance Sessions and Records for calendar view.
         console.log('Inserting attendance sessions and records...');
+        // Corrected sessions: status 'open' and include qr_code_data
         const sept5SessionRes = await client.query(
-            `INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, status) VALUES ($1, $2, $3, $4, $5) RETURNING session_id;`,
-            [dataStructuresSubjectId, facultyId, '2024-09-05', '10:00:00', 'closed']
+            `INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, status, qr_code_data) VALUES ($1, $2, $3, $4, $5, $6) RETURNING session_id, qr_code_data;`,
+            [dataStructuresSubjectId, facultyId, '2024-09-05', '10:00:00', 'open', 'CODE5ABC'] // Status OPEN + QR Code
         );
         const sept5SessionId = sept5SessionRes.rows[0].session_id;
+        const sept5QrCode = sept5SessionRes.rows[0].qr_code_data;
         await client.query(
             `INSERT INTO attendance_records (session_id, student_id, status, attended_at) VALUES ($1, $2, $3, $4);`,
             [sept5SessionId, studentId, 'present', '2024-09-05 10:05:00+05:30']
         );
-        console.log(`Attendance for 2024-09-05 recorded (Present).`);
+        console.log(`Attendance for 2024-09-05 recorded (Present), Code: ${sept5QrCode}.`);
 
         const sept6SessionRes = await client.query(
-            `INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, status) VALUES ($1, $2, $3, $4, $5) RETURNING session_id;`,
-            [dataStructuresSubjectId, facultyId, '2024-09-06', '10:00:00', 'closed']
+            `INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, status, qr_code_data) VALUES ($1, $2, $3, $4, $5, $6) RETURNING session_id, qr_code_data;`,
+            [dataStructuresSubjectId, facultyId, '2024-09-06', '10:00:00', 'open', 'CODE6DEF'] // Status OPEN + QR Code
         );
         const sept6SessionId = sept6SessionRes.rows[0].session_id;
+        const sept6QrCode = sept6SessionRes.rows[0].qr_code_data;
         await client.query(
             `INSERT INTO attendance_records (session_id, student_id, status, attended_at) VALUES ($1, $2, $3, $4);`,
             [sept6SessionId, studentId, 'present', '2024-09-06 10:02:00+05:30']
         );
-        console.log(`Attendance for 2024-09-06 recorded (Present).`);
+        console.log(`Attendance for 2024-09-06 recorded (Present), Code: ${sept6QrCode}.`);
 
         const sept12SessionRes = await client.query(
-            `INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, status) VALUES ($1, $2, $3, $4, $5) RETURNING session_id;`,
-            [dataStructuresSubjectId, facultyId, '2024-09-12', '10:00:00', 'closed']
+            `INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, status, qr_code_data) VALUES ($1, $2, $3, $4, ($5), $6) RETURNING session_id, qr_code_data;`,
+            [dataStructuresSubjectId, facultyId, '2024-09-12', '10:00:00', 'open', 'CODE12GHI'] // Status OPEN + QR Code
         );
         const sept12SessionId = sept12SessionRes.rows[0].session_id;
+        const sept12QrCode = sept12SessionRes.rows[0].qr_code_data;
         await client.query(
             `INSERT INTO attendance_records (session_id, student_id, status, attended_at) VALUES ($1, $2, $3, $4);`,
             [sept12SessionId, studentId, 'absent', null]
         );
-        console.log(`Attendance for 2024-09-12 recorded (Absent).`);
+        console.log(`Attendance for 2024-09-12 recorded (Absent), Code: ${sept12QrCode}.`);
 
-        // --- NEW ADMIN USER INSERTION ---
+        // NEW ADMIN USER INSERTION
         console.log('Inserting default admin user...');
-        const adminPasswordHash = await hashPassword('adminpass'); // Choose a strong password for admin
+        const adminPasswordHash = await hashPassword('adminpass');
         const adminRes = await client.query(
             `INSERT INTO admins (name, email, password_hash) VALUES ($1, $2, $3) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, password_hash = EXCLUDED.password_hash RETURNING admin_id;`,
             ['Super Admin', 'admin@example.com', adminPasswordHash]
         );
         const adminId = adminRes.rows[0].admin_id;
         console.log(`Default admin inserted: admin@example.com (${adminId})`);
-        // --- END NEW ADMIN USER INSERTION ---
 
         console.log('All test data seeded successfully!');
 
@@ -159,11 +163,11 @@ const seedDatabase = async () => {
         console.error('Error seeding database:', error);
     } finally {
         if (client) {
-            client.release(); // Release the client back to the pool
+            client.release();
             console.log('Database client released.');
         }
-        process.exit(0); // Exit the script process
+        process.exit(0);
     }
 };
 
-seedDatabase(); // Call the seeding function to start.
+seedDatabase();

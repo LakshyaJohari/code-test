@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS students (
     roll_number VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
+    password_hash VARCHAR(255) NOT NULL, -- ADDED FOR STUDENT AUTHENTICATION
     department_id UUID NOT NULL,
     current_year INT,
     section VARCHAR(10),

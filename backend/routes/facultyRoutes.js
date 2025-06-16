@@ -1,7 +1,7 @@
 const express = require('express');
 const { getMyProfile, updateMyProfile, changeMyPassword } = require('../controllers/facultyController');
 const { getFacultySubjects } = require('../controllers/subjectController');
-const authMiddleware = require('../middleware/authMiddleware'); // CORRECT: Uses regular authMiddleware
+const authMiddleware = require('../middleware/authMiddleware'); // Faculty-specific auth middleware
 
 const router = express.Router();
 

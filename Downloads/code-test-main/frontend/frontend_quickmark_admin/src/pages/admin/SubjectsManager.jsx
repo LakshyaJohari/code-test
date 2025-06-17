@@ -13,28 +13,36 @@ export default function SubjectsManager() {
 
     const getAdminToken = () => localStorage.getItem("adminToken");
 
-    const fetchData = async () => {
+    const fetchDepartments = async () => {
+        try {
+            const token = getAdminToken();
+            const response = await axios.get("http://localhost:3700/api/admin/departments", { headers: { Authorization: `Bearer ${token}` } });
+            setDepartments(response.data);
+        } catch (err) {
+            setError("Failed to load departments for subject forms.");
+        }
+    };
+
+    const fetchSubjects = async () => {
         setLoading(true);
         setError("");
         try {
             const token = getAdminToken();
-            const [deptRes, subjRes] = await Promise.all([
-                axios.get("http://localhost:3700/api/admin/departments", { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get("http://localhost:3700/api/admin/subjects", { headers: { Authorization: `Bearer ${token}` } }),
-            ]);
-            setDepartments(deptRes.data);
-            setSubjects(subjRes.data);
+            const response = await axios.get("http://localhost:3700/api/admin/subjects", { headers: { Authorization: `Bearer ${token}` } });
+            setSubjects(response.data);
         } catch (err) {
-            setError("Failed to load data.");
+            setError("Failed to load subjects.");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        fetchDepartments();
+        fetchSubjects();
     }, []);
 
+    // Subject CRUD
     const handleCreateSubject = async (e) => {
         e.preventDefault();
         setError("");
@@ -44,21 +52,22 @@ export default function SubjectsManager() {
         }
         try {
             const token = getAdminToken();
+            const payload = {
+                subject_name: newSubject.subject_name,
+                department_id: newSubject.department_id,
+                year: parseInt(newSubject.year),
+                section: newSubject.section,
+                batch_name: newSubject.batch_name.trim() || null,
+            };
             await axios.post(
                 "http://localhost:3700/api/admin/subjects",
-                {
-                    subject_name: newSubject.subject_name,
-                    department_id: newSubject.department_id,
-                    year: parseInt(newSubject.year),
-                    section: newSubject.section,
-                    batch_name: newSubject.batch_name.trim() || null,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
+                payload,
+                { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
             );
             setNewSubject({ subject_name: "", department_id: "", year: "", section: "", batch_name: "" });
-            fetchData();
+            fetchSubjects();
         } catch (err) {
-            setError("Failed to create subject.");
+            setError(err.response?.data?.message || 'Failed to create subject.');
         }
     };
 
@@ -71,22 +80,23 @@ export default function SubjectsManager() {
         }
         try {
             const token = getAdminToken();
+            const payload = {
+                subject_name: editSubject.subject_name,
+                department_id: editSubject.department_id,
+                year: parseInt(editSubject.year),
+                section: editSubject.section,
+                batch_name: editSubject.batch_name.trim() || null,
+            };
             await axios.put(
                 `http://localhost:3700/api/admin/subjects/${editingSubject.subject_id}`,
-                {
-                    subject_name: editSubject.subject_name,
-                    department_id: editSubject.department_id,
-                    year: parseInt(editSubject.year),
-                    section: editSubject.section,
-                    batch_name: editSubject.batch_name.trim() || null,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
+                payload,
+                { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
             );
             setEditingSubject(null);
             setEditSubject({ subject_id: "", subject_name: "", department_id: "", year: "", section: "", batch_name: "" });
-            fetchData();
+            fetchSubjects();
         } catch (err) {
-            setError("Failed to update subject.");
+            setError(err.response?.data?.message || 'Failed to update subject.');
         }
     };
 
@@ -99,7 +109,7 @@ export default function SubjectsManager() {
                 `http://localhost:3700/api/admin/subjects/${subjectId}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            fetchData();
+            fetchSubjects();
         } catch (err) {
             setError("Failed to delete subject.");
         }
@@ -176,7 +186,10 @@ export default function SubjectsManager() {
                         {subjects.map((subj) => (
                             <tr key={subj.subject_id} className="border-b last:border-b-0 hover:bg-gray-50">
                                 <td className="py-2 px-4">{subj.subject_name}</td>
-                                <td className="py-2 px-4">{departments.find(d => d.department_id === subj.department_id)?.name || "N/A"}</td>
+                                {/* FIX: Lookup department name by department_id */}
+                                <td className="py-2 px-4">
+                                    {departments.find(d => d.department_id === subj.department_id)?.name || "N/A"}
+                                </td>
                                 <td className="py-2 px-4">{subj.year}</td>
                                 <td className="py-2 px-4">{subj.section}</td>
                                 <td className="py-2 px-4">{subj.batch_name || "N/A"}</td>
@@ -254,8 +267,7 @@ export default function SubjectsManager() {
                                 required
                             />
                             <input
-                                type="text"
-                                placeholder="Batch Name (Optional)"
+                                type="text"placeholder="Batch Name (Optional)"
                                 value={editSubject.batch_name || ""}
                                 onChange={(e) => setEditSubject({ ...editSubject, batch_name: e.target.value })}
                                 className="w-full px-3 py-2 border rounded-lg mb-2"

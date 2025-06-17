@@ -1,32 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { Link } from "react-router-dom";
-
-// ...existing code...
-
-<div className="text-center mt-4">
-    <Link to="/admin/subjects-list" className="text-blue-500 hover:underline">
-        Go to Subjects List
-    </Link>
-</div>
-
-// ...existing code...
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { PlusCircle, Edit, Trash2 } from "lucide-react";
 
 const AdminDepartmentsPage = () => {
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [newDepartmentName, setNewDepartmentName] = useState('');
-    const [editingDepartment, setEditingDepartment] = useState(null); // Stores department being edited {id, name}
+    const [editingDepartment, setEditingDepartment] = useState(null);
     const [editDepartmentName, setEditDepartmentName] = useState('');
 
-    // Helper to get Admin Token from localStorage
-    const getAdminToken = () => {
-        return localStorage.getItem('adminToken'); // Ensure you store token as 'adminToken' on login
-    };
+    const getAdminToken = () => localStorage.getItem('adminToken');
 
-    // --- Fetch Departments from Backend ---
     const fetchDepartments = async () => {
         setLoading(true);
         setError('');
@@ -35,8 +20,6 @@ const AdminDepartmentsPage = () => {
             if (!token) {
                 setError('Admin not authenticated. Please log in again.');
                 setLoading(false);
-                // Optional: Redirect to admin login page if token is missing
-                // window.location.href = '/admin-login';
                 return;
             }
             const response = await axios.get('http://localhost:3700/api/admin/departments', {
@@ -46,7 +29,6 @@ const AdminDepartmentsPage = () => {
             });
             setDepartments(response.data);
         } catch (err) {
-            console.error('Error fetching departments:', err.response ? err.response.data : err.message);
             setError(err.response?.data?.message || 'Failed to load departments. Please try again.');
         } finally {
             setLoading(false);
@@ -54,10 +36,9 @@ const AdminDepartmentsPage = () => {
     };
 
     useEffect(() => {
-        fetchDepartments(); // Fetch departments on component mount
+        fetchDepartments();
     }, []);
 
-    // --- Create Department ---
     const handleCreateDepartment = async (e) => {
         e.preventDefault();
         setError('');
@@ -75,16 +56,14 @@ const AdminDepartmentsPage = () => {
                     'Content-Type': 'application/json'
                 }
             });
-            alert(response.data.message); // Simple alert for success
-            setNewDepartmentName(''); // Clear input
-            fetchDepartments(); // Refresh list
+            alert(response.data.message);
+            setNewDepartmentName('');
+            fetchDepartments();
         } catch (err) {
-            console.error('Error creating department:', err.response ? err.response.data : err.message);
             setError(err.response?.data?.message || 'Failed to create department.');
         }
     };
 
-    // --- Update Department ---
     const handleUpdateDepartment = async (e) => {
         e.preventDefault();
         setError('');
@@ -107,15 +86,13 @@ const AdminDepartmentsPage = () => {
             setEditDepartmentName('');
             fetchDepartments();
         } catch (err) {
-            console.error('Error updating department:', err.response ? err.response.data : err.message);
             setError(err.response?.data?.message || 'Failed to update department.');
         }
     };
 
-    // --- Delete Department ---
     const handleDeleteDepartment = async (departmentId) => {
         if (!window.confirm('Are you sure you want to delete this department?')) {
-            return; // User cancelled
+            return;
         }
         setError('');
         try {
@@ -126,9 +103,8 @@ const AdminDepartmentsPage = () => {
                 }
             });
             alert(response.data.message);
-            fetchDepartments(); // Refresh list
+            fetchDepartments();
         } catch (err) {
-            console.error('Error deleting department:', err.response ? err.response.data : err.message);
             if (err.response?.status === 409) {
                 setError('Cannot delete department: It still has associated records (e.g., faculties, students, subjects).');
             } else {
@@ -142,11 +118,10 @@ const AdminDepartmentsPage = () => {
 
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-3xl font-bold mb-6 text-center">Manage Departments</h1>
-
+            <h1 className="text-3xl font-bold mb-6 text-center">Manage Departments (Branches)</h1>
             {/* Create Department Form */}
             <form onSubmit={handleCreateDepartment} className="mb-8 p-4 border rounded-lg shadow-sm">
-                <h2 className="text-xl font-semibold mb-4">Add New Department</h2>
+                <h2 className="text-xl font-semibold mb-4">Add New Department (Branch)</h2>
                 <div className="flex items-end space-x-2">
                     <input
                         type="text"
@@ -164,10 +139,9 @@ const AdminDepartmentsPage = () => {
                     </button>
                 </div>
             </form>
-
             {/* Departments List */}
             <div className="p-4 border rounded-lg shadow-sm">
-                <h2 className="text-xl font-semibold mb-4">Existing Departments</h2>
+                <h2 className="text-xl font-semibold mb-4">Existing Departments (Branches)</h2>
                 {departments.length === 0 ? (
                     <p className="text-center text-gray-500">No departments found.</p>
                 ) : (
@@ -206,7 +180,6 @@ const AdminDepartmentsPage = () => {
                     </table>
                 )}
             </div>
-
             {/* Edit Department Modal/Form */}
             {editingDepartment && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4">

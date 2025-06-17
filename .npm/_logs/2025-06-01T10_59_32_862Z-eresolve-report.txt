@@ -1,0 +1,70 @@
+'Log files:
+/Users/srinivasch/.npm/_logs/2025-06-01T10_59_32_862Z-debug-0.log
+
+# npm resolution error report
+
+While resolving: @material-ui/core@4.11.0
+Found: react@17.0.1
+node_modules/react
+  peer react@"*" from @testing-library/react@11.1.1
+  node_modules/@testing-library/react
+    @testing-library/react@"^11.1.0" from the root project
+  peer react@"^0.14.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" from mini-create-react-context@0.4.1
+  node_modules/mini-create-react-context
+    mini-create-react-context@"^0.4.0" from react-router@5.2.0
+    node_modules/react-router
+      react-router@"5.2.0" from react-router-dom@5.2.0
+      node_modules/react-router-dom
+        react-router-dom@"^5.2.0" from the root project
+  peer react@"17.0.1" from react-dom@17.0.1
+  node_modules/react-dom
+    peer react-dom@"*" from @testing-library/react@11.1.1
+    node_modules/@testing-library/react
+      @testing-library/react@"^11.1.0" from the root project
+    peer react-dom@">=16.6.0" from react-transition-group@4.4.1
+    node_modules/react-transition-group
+      react-transition-group@"^4.4.0" from @material-ui/core@4.11.0
+      node_modules/@material-ui/core
+        peer @material-ui/core@"^4.0.0" from @material-ui/icons@4.9.1
+        node_modules/@material-ui/icons
+          @material-ui/icons@"^4.9.1" from the root project
+        @material-ui/core@"^4.11.0" from the root project
+    react-dom@"^17.0.1" from the root project
+  peer react@">=15" from react-router@5.2.0
+  node_modules/react-router
+    react-router@"5.2.0" from react-router-dom@5.2.0
+    node_modules/react-router-dom
+      react-router-dom@"^5.2.0" from the root project
+  peer react@">=15" from react-router-dom@5.2.0
+  node_modules/react-router-dom
+    react-router-dom@"^5.2.0" from the root project
+  peer react@">=16.6.0" from react-transition-group@4.4.1
+  node_modules/react-transition-group
+    react-transition-group@"^4.4.0" from @material-ui/core@4.11.0
+    node_modules/@material-ui/core
+      peer @material-ui/core@"^4.0.0" from @material-ui/icons@4.9.1
+      node_modules/@material-ui/icons
+        @material-ui/icons@"^4.9.1" from the root project
+      @material-ui/core@"^4.11.0" from the root project
+  react@"^17.0.1" from the root project
+
+Could not resolve dependency:
+peer react@"^16.8.0" from @material-ui/core@4.11.0
+node_modules/@material-ui/core
+  peer @material-ui/core@"^4.0.0" from @material-ui/icons@4.9.1
+  node_modules/@material-ui/icons
+    @material-ui/icons@"^4.9.1" from the root project
+  @material-ui/core@"^4.11.0" from the root project
+
+Conflicting peer dependency: react@16.14.0
+node_modules/react
+  peer react@"^16.8.0" from @material-ui/core@4.11.0
+  node_modules/@material-ui/core
+    peer @material-ui/core@"^4.0.0" from @material-ui/icons@4.9.1
+    node_modules/@material-ui/icons
+      @material-ui/icons@"^4.9.1" from the root project
+    @material-ui/core@"^4.11.0" from the root project
+
+Fix the upstream dependency conflict, or retry
+this command with --force or --legacy-peer-deps
+to accept an incorrect (and potentially broken) dependency resolution.

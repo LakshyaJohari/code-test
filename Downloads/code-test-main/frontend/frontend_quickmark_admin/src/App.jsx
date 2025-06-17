@@ -2,14 +2,11 @@ import React, { useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import AdminLogin from "./pages/auth/Login.jsx";
 import Dashboard from "./pages/dashboard/Dashboard.jsx";
-import SubjectsAndDepartments from "./pages/admin/SubjectsAndDepartments.jsx";
 import MainLayout from "./components/layout/MainLayout.jsx";
 import FaceRegister from "./pages/faceregister/FaceRegister.jsx";
 import Settings from "./pages/settings/Settings.jsx";
-
-// Placeholder pages for other sidebar items:
-// const FaceRegister = () => <div>Face Register Page</div>; //
-// const Settings = () => <div>Settings Page</div>; //
+import Departments from "./pages/departments/Departments.jsx";
+import Students from "./pages/students/StudentsList.jsx";
 
 export default function App() {
   const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'));
@@ -32,7 +29,9 @@ export default function App() {
   // This function matches your sidebar navItems
   const handleNavigateTo = (section) => {
     if (section === "Home") navigate("/admin/home");
-    if (section === "Subjects") navigate("/admin/subjects");
+    if (section === "Departments") navigate("/admin/departments");
+    if (section === "Subjects") navigate("/admin/subjects-list");
+    if (section === "Students") navigate("/admin/students");
     if (section === "FaceRegister") navigate("/admin/faceregister");
     if (section === "Settings") navigate("/admin/settings");
   };
@@ -58,7 +57,7 @@ export default function App() {
         }
       />
       <Route
-        path="/admin/subjects"
+        path="/admin/subjects-list"
         element={
           <MainLayout
             currentPage="Subjects"
@@ -67,6 +66,32 @@ export default function App() {
             onLogout={handleAdminLogout}
           >
             <SubjectsAndDepartments />
+          </MainLayout>
+        }
+      />
+      <Route
+        path="/admin/departments"
+        element={
+          <MainLayout
+            currentPage="Departments"
+            navigateTo={handleNavigateTo}
+            title="Departments"
+            onLogout={handleAdminLogout}
+          >
+            <Departments />
+          </MainLayout>
+        }
+      />
+      <Route
+        path="/admin/students"
+        element={
+          <MainLayout
+            currentPage="Students"
+            navigateTo={handleNavigateTo}
+            title="Students"
+            onLogout={handleAdminLogout}
+          >
+            <Students />
           </MainLayout>
         }
       />

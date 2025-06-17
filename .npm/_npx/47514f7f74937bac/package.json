@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "create-tailwindcss": "^0.0.6"
+  },
+  "_npx": {
+    "packages": [
+      "create-tailwindcss"
+    ]
+  }
+}

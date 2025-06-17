@@ -20,8 +20,10 @@ export default function DepartmentsManager() {
             const response = await axios.get("http://localhost:3700/api/admin/departments", {
                 headers: { Authorization: `Bearer ${token}` },
             });
+            console.log('DepartmentsManager: Fetched Departments Data:', response.data); // DEBUG LOG
             setDepartments(response.data);
         } catch (err) {
+            console.error('DepartmentsManager: Error fetching departments:', err.response?.data?.message || err.message);
             setError("Failed to load departments.");
         } finally {
             setLoading(false);
@@ -29,8 +31,13 @@ export default function DepartmentsManager() {
     };
 
     useEffect(() => {
+        console.log('DepartmentsManager: Component mounted/re-rendered'); // DEBUG LOG
         fetchDepartments();
     }, []);
+
+    useEffect(() => {
+        console.log('DepartmentsManager: Current Departments State:', departments); // DEBUG LOG
+    }, [departments]);
 
     const handleCreateDepartment = async (e) => {
         e.preventDefault();
@@ -44,12 +51,13 @@ export default function DepartmentsManager() {
             await axios.post(
                 "http://localhost:3700/api/admin/departments",
                 { name: newDepartmentName },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
             );
+            alert('Department created successfully!');
             setNewDepartmentName("");
             fetchDepartments();
         } catch (err) {
-            setError("Failed to create department.");
+            setError(err.response?.data?.message || 'Failed to create department.');
         }
     };
 
@@ -65,13 +73,14 @@ export default function DepartmentsManager() {
             await axios.put(
                 `http://localhost:3700/api/admin/departments/${editingDepartment.department_id}`,
                 { name: editDepartmentName },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
             );
+            alert('Department updated successfully!');
             setEditingDepartment(null);
             setEditDepartmentName("");
             fetchDepartments();
         } catch (err) {
-            setError("Failed to update department.");
+            setError(err.response?.data?.message || 'Failed to update department.');
         }
     };
 
@@ -84,15 +93,20 @@ export default function DepartmentsManager() {
                 `http://localhost:3700/api/admin/departments/${departmentId}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
+            alert('Department deleted successfully!');
             fetchDepartments();
         } catch (err) {
-            setError("Failed to delete department.");
+            if (err.response?.status === 409) {
+                setError('Cannot delete department: It still has associated records (e.g., faculties, students, subjects).');
+            } else {
+                setError(err.response?.data?.message || 'Failed to delete department.');
+            }
         }
     };
 
     return (
         <div className="p-4 border rounded-lg shadow-sm bg-white">
-            <h2 className="text-xl font-semibold mb-4 text-center">Departments</h2>
+            <h2 className="text-xl font-semibold mb-4 text-center">Departments (Branches)</h2> {/* Adjusted title */}
             <form onSubmit={handleCreateDepartment} className="mb-4 flex space-x-2">
                 <input
                     type="text"

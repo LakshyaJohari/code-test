@@ -1,0 +1,37 @@
+2025-05-30 20:44:23,282: WARNING	werkzeug:	Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2025-05-30 20:44:42,366: WARNING	pgadmin:	There are no saved passwords
+2025-05-30 21:24:07,370: ERROR	pgadmin:	Failed to execute query (execute_async) for the server #1 - CONN:2990173(Query-id: 3008538):
+Error Message:ERROR:  syntax error at or near ";"
+LINE 1: create table table3;
+                           ^ 
+
+SQL state: 42601
+Character: 20
+2025-05-30 21:24:15,427: ERROR	pgadmin:	Failed to execute query (execute_async) for the server #1 - CONN:2990173(Query-id: 8123712):
+Error Message:ERROR:  syntax error at end of input
+LINE 1: create table table3
+                           ^ 
+
+SQL state: 42601
+Character: 20
+2025-05-30 21:24:23,593: ERROR	pgadmin:	Failed to execute query (execute_async) for the server #1 - CONN:2990173(Query-id: 5952656):
+Error Message:ERROR:  syntax error at or near ","
+LINE 1: create table table3,
+                           ^ 
+
+SQL state: 42601
+Character: 20
+2025-05-30 21:24:32,750: ERROR	pgadmin:	Failed to execute query (execute_async) for the server #1 - CONN:2990173(Query-id: 3623927):
+Error Message:ERROR:  syntax error at or near "table3"
+LINE 1: create table3
+               ^ 
+
+SQL state: 42601
+Character: 8
+2025-05-30 21:24:42,876: ERROR	pgadmin:	Failed to execute query (execute_async) for the server #1 - CONN:2990173(Query-id: 6498281):
+Error Message:ERROR:  syntax error at or near "table3"
+LINE 1: create table3;
+               ^ 
+
+SQL state: 42601
+Character: 8

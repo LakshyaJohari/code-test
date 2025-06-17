@@ -11,3 +11,5 @@
 	co = checkout
 [credential]
 	user = chavaliadi
+[core]
+	excludesfile = /Users/srinivasch/.gitignore_global

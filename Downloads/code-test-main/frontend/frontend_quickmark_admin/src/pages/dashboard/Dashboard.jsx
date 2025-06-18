@@ -1,9 +1,81 @@
-import React, { useEffect, useState } from 'react';
-import InfoCard from './InfoCard.jsx';
-import axios from 'axios';
-import { Book, Users, AlertCircle, Briefcase, Building, Settings as SettingsIcon } from 'lucide-react'; // Import icons
+// import React, { useEffect, useState } from 'react';
+// import axios from 'axios';
+// import { useNavigate } from 'react-router-dom';
+// import InfoCard from './InfoCard';
+// import { Book, Users, AlertCircle, Briefcase, Building, Settings as SettingsIcon } from 'lucide-react';
 
-export default function Dashboard({ navigateTo }) {
+// export default function Dashboard() {
+//   const [stats, setStats] = useState({
+//     subjects: 0,
+//     students: 0,
+//     defaulters: 0,
+//     faculty: 0,
+//     departments: 0,
+//   });
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState('');
+//   const navigate = useNavigate();
+
+//   const fetchDashboardStats = async () => {
+//     setLoading(true);
+//     setError('');
+//     try {
+//       const token = localStorage.getItem('adminToken');
+//       if (!token) {
+//         setError('Admin not authenticated.');
+//         setLoading(false);
+//         return;
+//       }
+//       const response = await axios.get('http://localhost:3700/api/admin/dashboard-stats', {
+//         headers: { Authorization: `Bearer ${token}` }
+//       });
+//       setStats({
+//         subjects: response.data.subjects,
+//         students: response.data.students,
+//         defaulters: response.data.defaulters,
+//         faculty: response.data.faculties,
+//         departments: response.data.departments,
+//       });
+//     } catch (err) {
+//       console.error('Error fetching dashboard stats:', err.response ? err.response.data : err.message);
+//       setError(err.response?.data?.message || 'Failed to load dashboard stats.');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchDashboardStats();
+//   }, []);
+
+//   const infoCards = [
+//     { title: 'Total Subjects', value: stats.subjects, navigate, linkTo: '/admin/subjects-list', IconComponent: Book },
+//     { title: 'Total Students', value: stats.students, navigate, linkTo: '/admin/students-list', IconComponent: Users },
+//     { title: 'Total Defaulters', value: stats.defaulters, navigate, linkTo: '/admin/defaulters', IconComponent: AlertCircle },
+//     { title: 'Total Faculty', value: stats.faculty, navigate, linkTo: '/admin/faculty-list', IconComponent: Briefcase },
+//     { title: 'Departments', value: stats.departments, navigate, linkTo: '/admin/departments', IconComponent: Building },
+//     { title: 'Settings', value: '', navigate, linkTo: '/admin/settings', IconComponent: SettingsIcon },
+//   ];
+
+//   if (loading) return <div className="text-center text-xl mt-10">Loading Dashboard...</div>;
+//   if (error) return <div className="text-center text-red-500 text-xl mt-10">Error: {error}</div>;
+
+//   return (
+//     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+//       {infoCards.map((card) => (
+//         <InfoCard key={card.title} {...card} />
+//       ))}
+//     </div>
+//   );
+// }
+
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import InfoCard from './InfoCard';
+import { Book, Users, AlertCircle, Briefcase, Building, Settings as SettingsIcon } from 'lucide-react';
+
+export default function Dashboard() {
   const [stats, setStats] = useState({
     subjects: 0,
     students: 0,
@@ -11,34 +83,55 @@ export default function Dashboard({ navigateTo }) {
     faculty: 0,
     departments: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchStats = async () => {
+  const fetchDashboardStats = async () => {
+    setLoading(true);
+    setError('');
+    try {
       const token = localStorage.getItem('adminToken');
-      const res = await axios.get('http://localhost:3700/api/admin/dashboard-stats', {
+      if (!token) {
+        setError('Admin not authenticated.');
+        setLoading(false);
+        return;
+      }
+      const response = await axios.get('http://localhost:3700/api/admin/dashboard-stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Dashboard: Fetched Stats Data:', response.data); // ADDED LOG
       setStats({
-        subjects: res.data.subjects,
-        students: res.data.students,
-        defaulters: res.data.defaulters || 0,
-        faculty: res.data.faculties || res.data.faculty || 0,
-        departments: res.data.departments || 0,
+        subjects: response.data.subjects,
+        students: response.data.students,
+        defaulters: response.data.defaulters,
+        faculty: response.data.faculties,
+        departments: response.data.departments,
       });
-    };
-    fetchStats();
+    } catch (err) {
+      console.error('Dashboard: Error fetching dashboard stats:', err.response ? err.response.data : err.message); // ADDED LOG
+      setError(err.response?.data?.message || 'Failed to load dashboard stats.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('Dashboard: Component mounted/re-rendered'); // ADDED LOG
+    fetchDashboardStats();
   }, []);
 
   const infoCards = [
-    { title: 'Total Subjects', value: stats.subjects, navigateTo, linkTo: 'Subjects', imageUrl: 'https://placehold.co/400x300/E9F5E9/34A853?text=Subjects' },
-    { title: 'Total Students', value: stats.students, navigateTo, linkTo: 'Students', imageUrl: 'https://placehold.co/400x300/E8F0FE/4285F4?text=Students' },
-    { title: 'Total Defaulters', value: stats.defaulters, navigateTo, linkTo: 'Defaulters', imageUrl: 'https://placehold.co/400x300/FCE8E6/EA4335?text=Defaulters' },
-    { title: 'Total Faculty', value: stats.faculty, navigateTo, linkTo: 'Faculty', imageUrl: 'https://placehold.co/400x300/FEF7E0/FBBC05?text=Faculty' },
-    // New Departments card
-    { title: 'Departments', value: stats.departments, navigateTo, linkTo: 'Departments', imageUrl: 'https://placehold.co/400x300/DEF7FE/1E88E5?text=Departments' },
-    // New Settings card
-    { title: 'Settings', value: '', navigateTo, linkTo: 'Settings', imageUrl: 'https://placehold.co/400x300/F3E8FF/8E24AA?text=Settings' },
+    { title: 'Total Subjects', value: stats.subjects, navigate, linkTo: '/admin/subjects-list', IconComponent: Book },
+    { title: 'Total Students', value: stats.students, navigate, linkTo: '/admin/students-list', IconComponent: Users },
+    { title: 'Total Defaulters', value: stats.defaulters, navigate, linkTo: '/admin/defaulters', IconComponent: AlertCircle },
+    { title: 'Total Faculty', value: stats.faculty, navigate, linkTo: '/admin/faculty-list', IconComponent: Briefcase },
+    { title: 'Departments', value: stats.departments, navigate, linkTo: '/admin/departments', IconComponent: Building },
+    { title: 'Settings', value: '', navigate, linkTo: '/admin/settings', IconComponent: SettingsIcon },
   ];
+
+  if (loading) return <div className="text-center text-xl mt-10">Loading Dashboard...</div>;
+  if (error) return <div className="text-center text-red-500 text-xl mt-10">Error: {error}</div>;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

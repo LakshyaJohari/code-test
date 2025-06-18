@@ -1,22 +1,17 @@
-// src/components/layout/Topbar.jsx
 import React, { useState, useEffect, useRef } from 'react';
 
-// The component now accepts an `onLogout` function prop
-export default function Topbar({ title, showBackButton, onBack, onLogout }) {
+export default function Topbar({ onLogout }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // This effect handles closing the menu when clicking outside of it
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsMenuOpen(false);
       }
     }
-    // Bind the event listener
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      // Unbind the event listener on clean up
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [menuRef]);
@@ -24,25 +19,18 @@ export default function Topbar({ title, showBackButton, onBack, onLogout }) {
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
       <div className="flex items-center">
-        {showBackButton && (
-          <button onClick={onBack} className="mr-4 text-gray-600 hover:text-gray-800">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          </button>
-        )}
-        <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Admin Dashboard</h2>
       </div>
       <div className="flex items-center space-x-4">
         <button className="p-2 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
         </button>
         
-        {/* Profile icon and dropdown menu */}
         <div className="relative" ref={menuRef}>
           <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             A
           </button>
           
-          {/* Conditional rendering of the popup menu */}
           {isMenuOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-10">
               <div className="px-4 py-2 text-sm text-gray-700">
@@ -52,7 +40,7 @@ export default function Topbar({ title, showBackButton, onBack, onLogout }) {
               <button
                 onClick={() => {
                   onLogout();
-                  setIsMenuOpen(false); // Close menu on click
+                  setIsMenuOpen(false);
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
               >

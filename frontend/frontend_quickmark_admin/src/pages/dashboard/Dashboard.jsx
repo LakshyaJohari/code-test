@@ -1,19 +1,194 @@
 // src/pages/dashboard/Dashboard.jsx
-import React from 'react';
-import InfoCard from './InfoCard.jsx';
-export default function Dashboard({ stats, navigateTo }) {
-  const infoCards = [
-    { title: 'Total Subjects', value: stats.subjects, navigateTo: navigateTo, linkTo: 'Subjects', imageUrl: 'https://placehold.co/400x300/E9F5E9/34A853?text=Subjects' },
-    { title: 'Total Students', value: stats.students, navigateTo: navigateTo, linkTo: 'Students', imageUrl: 'https://placehold.co/400x300/E8F0FE/4285F4?text=Students' },
-    { title: 'Total Defaulters', value: stats.defaulters, navigateTo: navigateTo, linkTo: 'Defaulters', imageUrl: 'https://placehold.co/400x300/FCE8E6/EA4335?text=Defaulters' },
-    { title: 'Total Faculty', value: stats.faculty, navigateTo: navigateTo, linkTo: 'Faculty', imageUrl: 'https://placehold.co/400x300/FEF7E0/FBBC05?text=Faculty' },
-  ];
+import React, { useState, useMemo } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+const ITEMS_PER_PAGE = 5; // Number of subjects to show per page
+
+export default function Dashboard({ allStudents, allSubjects }) {
+  // State for filters and pagination
+  const [filters, setFilters] = useState({
+    year: "",
+    department: "",
+    faculty: "",
+  });
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // --- Data Processing and Filtering ---
+  const chartData = useMemo(() => {
+    // 1. Calculate number of defaulters for each subject
+    const defaultersBySubject = allSubjects.map((subject) => {
+      // Find students in the same department and year as the subject
+      const studentsInSubject = allStudents.filter(
+        (student) =>
+          student.department === subject.department &&
+          student.year === subject.year
+      );
+      // Count how many of those students are defaulters
+      const defaulterCount = studentsInSubject.filter(
+        (student) => student.attendance < 75
+      ).length;
+      return { ...subject, defaulters: defaulterCount };
+    });
+
+    // 2. Apply filters to the processed data
+    return defaultersBySubject.filter((subject) => {
+      const yearMatch = filters.year
+        ? subject.year.toString() === filters.year
+        : true;
+      const departmentMatch = filters.department
+        ? subject.department === filters.department
+        : true;
+      const facultyMatch = filters.faculty
+        ? subject.faculty === filters.faculty
+        : true;
+      return yearMatch && departmentMatch && facultyMatch;
+    });
+  }, [allStudents, allSubjects, filters]);
+
+  // --- Pagination Logic ---
+  const paginatedData = useMemo(() => {
+    const startIndex = currentPage * ITEMS_PER_PAGE;
+    return chartData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [chartData, currentPage]);
+
+  const totalPages = Math.ceil(chartData.length / ITEMS_PER_PAGE);
+
+  // --- Event Handlers ---
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(0); // Reset to first page on filter change
+  };
+
+  const goToNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
+  const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 0));
+
+  // Get unique values for filter dropdowns
+  const uniqueYears = useMemo(
+    () => [...new Set(allSubjects.map((s) => s.year))],
+    [allSubjects]
+  );
+  const uniqueDepartments = useMemo(
+    () => [...new Set(allSubjects.map((s) => s.department))],
+    [allSubjects]
+  );
+  const uniqueFaculty = useMemo(
+    () => [...new Set(allSubjects.map((s) => s.faculty))],
+    [allSubjects]
+  );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-      {infoCards.map((card) => (
-        <InfoCard key={card.title} {...card} />
-      ))}
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Defaulters Analysis by Subject
+      </h2>
+
+      {/* Filter Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <select
+          name="year"
+          value={filters.year}
+          onChange={handleFilterChange}
+          className="p-2 border rounded-md bg-gray-50"
+        >
+          <option value="">All Years</option>
+          {uniqueYears.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+        <select
+          name="department"
+          value={filters.department}
+          onChange={handleFilterChange}
+          className="p-2 border rounded-md bg-gray-50"
+        >
+          <option value="">All Departments</option>
+          {uniqueDepartments.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+        <select
+          name="faculty"
+          value={filters.faculty}
+          onChange={handleFilterChange}
+          className="p-2 border rounded-md bg-gray-50"
+        >
+          <option value="">All Faculty</option>
+          {uniqueFaculty.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Chart */}
+      <div style={{ width: "100%", height: 400 }}>
+        <ResponsiveContainer>
+          <BarChart
+            data={paginatedData}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            layout="vertical"
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              type="category"
+              dataKey="name"
+              width={150}
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis
+              type=" number"
+              allowDecimals={false}
+              dataKey="defaulters"
+              name="Number of Defaulters"
+            />
+            <Tooltip cursor={{ fill: "#fafafa" }} />
+            <Legend />
+            <Bar
+              dataKey="name"
+              fill="#EF4444"
+              name="Subjects"
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-end items-center mt-4">
+        <span className="text-sm text-gray-600 mr-4">
+          Page {currentPage + 1} of {totalPages > 0 ? totalPages : 1}
+        </span>
+        <button
+          onClick={goToPrevPage}
+          disabled={currentPage === 0}
+          className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          onClick={goToNextPage}
+          disabled={currentPage >= totalPages - 1}
+          className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
     </div>
   );
 }

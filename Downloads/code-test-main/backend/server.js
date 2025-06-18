@@ -27,6 +27,7 @@ app.use('/api/attendance', attendanceRoutes); // Handles attendance operations
 app.use('/api/admin', adminRoutes); // Handles all admin-specific operations
 app.use('/api/student', studentRoutes); // <-- ADD THIS LINE
 
+
 app.get('/', (req, res) => {
     res.send('Welcome to the QuickMark API!');
 });

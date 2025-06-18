@@ -1,6 +1,8 @@
+// src/pages/LoginPage.jsx
+
 import React, { useState } from 'react';
 import { GanttChartSquare, Eye, EyeOff } from 'lucide-react';
-import axios from 'axios'; // ADD THIS LINE
+import axios from 'axios';
 
 const GoogleIcon = (props) => (
     <svg
@@ -32,23 +34,24 @@ const GoogleIcon = (props) => (
     </svg>
 );
 
-const LoginPage = ({ onLogin }) => {
+const LoginPage = ({ onLogin }) => { // onLogin is correctly destructured here
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState(''); // ADD THIS LINE for displaying errors
+    const [error, setError] = useState('');
 
-    const handleSubmit = async (e) => { // MAKE FUNCTION ASYNC
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError(''); // Clear previous errors
 
         if (!email || !password) {
-            setError('Please enter both email and password.'); // Use setError instead of alert
+            setError('Please enter both email and password.');
             return;
         }
 
         try {
-            const response = await axios.post('http://localhost:3700/api/auth/login', { // CALL BACKEND API
+            // Correct API endpoint for faculty login
+            const response = await axios.post('http://localhost:3700/api/faculty/login', {
                 email,
                 password,
             });
@@ -56,39 +59,52 @@ const LoginPage = ({ onLogin }) => {
             // Assuming successful login returns a token and faculty info
             const { token, faculty } = response.data;
 
-            localStorage.setItem('token', token); // Store token (e.g., in localStorage)
+            console.log('LoginPage - Received faculty data from backend:', faculty);
+            console.log('LoginPage - Storing token in localStorage:', token);
+
+            localStorage.setItem('token', token); // Store token
             localStorage.setItem('userEmail', faculty.email); // Store user info
-            // You might store faculty ID and name as well:
             localStorage.setItem('userId', faculty.id);
             localStorage.setItem('userName', faculty.name);
 
+            // Construct user data object for the App component
+            const userDataForApp = {
+                id: faculty.id,
+                name: faculty.name,
+                email: faculty.email,
+                // Add default/placeholder values for properties not returned by backend directly
+                designation: 'Faculty', // You might want to fetch this from backend later
+                subjectsTaught: [], // You might fetch this from backend later
+                avatar: 'https://placehold.co/100x100/E2E8F0/4A5568?text=' + faculty.name.charAt(0)
+            };
+            console.log('LoginPage - Passing userData to App via onLogin:', userDataForApp);
 
-            onLogin(token); // Call onLogin with the token (or just trigger a redirect here)
-                           // This onLogin prop might trigger a redirect to dashboard
-
-            // You could also redirect directly here if onLogin doesn't handle it
-            // window.location.href = '/dashboard'; 
+            // Call onLogin prop with the token and faculty data
+            onLogin(token, userDataForApp); 
 
         } catch (err) {
             console.error('Login failed:', err.response ? err.response.data : err.message);
-            setError(err.response && err.response.data && err.response.data.message || 'Login failed. Please try again.'); // Display specific error from backend
+            // Display specific error message from backend if available, otherwise a generic one
+            setError(err.response && err.response.data && err.response.data.message || 'Login failed. Please check your credentials.');
         }
     };
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center bg-white p-8">
-            {/* ... existing Logo Section ... */}
+            {/* Logo Section */}
+            <div className="flex items-center justify-center h-20">
+                <GanttChartSquare className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl font-bold ml-2 text-text-primary">QuickMark</h1>
+            </div>
 
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-text-primary">Login</h2>
+                    <h2 className="text-3xl font-bold text-text-primary">Faculty Login</h2>
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    {/* Display error message if any */}
-                    {error && <div className="text-red-500 text-sm mb-4 text-center">{error}</div>} {/* ADD THIS */}
+                    {error && <div className="text-red-500 text-sm mb-4 text-center">{error}</div>}
 
-                    {/* Email Input */}
                     <div className="mb-6">
                         <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-2">
                             Email
@@ -104,7 +120,6 @@ const LoginPage = ({ onLogin }) => {
                         />
                     </div>
 
-                    {/* Password Input */}
                     <div className="mb-6">
                         <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-2">
                             Password
@@ -129,7 +144,6 @@ const LoginPage = ({ onLogin }) => {
                         </div>
                     </div>
 
-                    {/* Submit Button */}
                     <button
                         type="submit"
                         className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
@@ -138,16 +152,14 @@ const LoginPage = ({ onLogin }) => {
                     </button>
                 </form>
 
-                {/* --- Divider --- */}
                 <div className="my-8 flex items-center">
                     <div className="flex-grow border-t border-border-color"></div>
                     <span className="flex-shrink mx-4 text-text-secondary text-sm">Or continue with</span>
                     <div className="flex-grow border-t border-border-color"></div>
                 </div>
 
-                {/* --- Google Login Button --- */}
                 <button
-                    onClick={handleSubmit} // Consider if Google login should also use the backend API
+                    onClick={handleSubmit} // This will re-trigger form submit; consider a separate Google auth flow
                     className="w-full flex justify-center items-center py-3 px-4 border border-border-color rounded-lg text-text-primary bg-white hover:bg-gray-50 transition-colors duration-300"
                 >
                     <GoogleIcon className="h-6 w-6 mr-3" />

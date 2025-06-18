@@ -1,290 +1,390 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+// src/pages/subjects/SubjectsList.jsx
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'; // Assuming you use Font Awesome icons
 
 export default function SubjectsList() {
-  const [subjects, setSubjects] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [newSubject, setNewSubject] = useState({
-    subject_name: "",
-    department_id: "",
-    year: "",
-    section: "",
-    batch_name: "",
-  });
-  const [editing, setEditing] = useState(null);
-  const [editSubject, setEditSubject] = useState({
-    subject_name: "",
-    department_id: "",
-    year: "",
-    section: "",
-    batch_name: "",
-  });
+    const [subjects, setSubjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedSubject, setSelectedSubject] = useState(null);
+    const [departments, setDepartments] = useState([]); // To fetch departments for dropdowns
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const token = localStorage.getItem("adminToken");
-      const [subjectsRes, departmentsRes] = await Promise.all([
-        axios.get("http://localhost:3700/api/admin/subjects", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get("http://localhost:3700/api/admin/departments", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-      setSubjects(subjectsRes.data);
-      setDepartments(departmentsRes.data);
-    } catch (err) {
-      setError("Failed to load subjects or departments.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Form states for Create/Edit
+    const [formSubjectName, setFormSubjectName] = useState('');
+    const [formDepartmentId, setFormDepartmentId] = useState('');
+    const [formYear, setFormYear] = useState('');
+    const [formSection, setFormSection] = useState('');
+    const [formSemester, setFormSemester] = useState(''); // NEW: Semester field
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+    const getAdminToken = () => localStorage.getItem('adminToken');
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (
-      !newSubject.subject_name.trim() ||
-      !newSubject.department_id ||
-      !newSubject.year ||
-      !newSubject.section
-    ) {
-      setError("All required fields are needed.");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("adminToken");
-      await axios.post(
-        "http://localhost:3700/api/admin/subjects",
-        newSubject,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setNewSubject({
-        subject_name: "",
-        department_id: "",
-        year: "",
-        section: "",
-        batch_name: "",
-      });
-      fetchData();
-    } catch {
-      setError("Failed to create subject.");
-    }
-  };
+    // Fetch subjects from backend
+    const fetchSubjects = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const token = getAdminToken();
+            if (!token) {
+                setError('Admin not authenticated. Please log in again.');
+                setLoading(false);
+                return;
+            }
+            const res = await axios.get('http://localhost:3700/api/admin/subjects', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSubjects(res.data);
+        } catch (err) {
+            console.error('Error fetching subjects:', err.response ? err.response.data : err.message);
+            setError(err.response?.data?.message || 'Failed to load subjects.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (
-      !editSubject.subject_name.trim() ||
-      !editSubject.department_id ||
-      !editSubject.year ||
-      !editSubject.section
-    ) {
-      setError("All required fields are needed.");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("adminToken");
-      await axios.put(
-        `http://localhost:3700/api/admin/subjects/${editing.subject_id}`,
-        editSubject,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setEditing(null);
-      setEditSubject({
-        subject_name: "",
-        department_id: "",
-        year: "",
-        section: "",
-        batch_name: "",
-      });
-      fetchData();
-    } catch {
-      setError("Failed to update subject.");
-    }
-  };
+    // Fetch departments for dropdowns
+    const fetchDepartments = async () => {
+        try {
+            const token = getAdminToken();
+            if (!token) return; // Should be handled by main App.jsx redirect if not authenticated
+            const res = await axios.get('http://localhost:3700/api/admin/departments', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setDepartments(res.data);
+        } catch (err) {
+            console.error('Error fetching departments:', err);
+        }
+    };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this subject?")) return;
-    try {
-      const token = localStorage.getItem("adminToken");
-      await axios.delete(
-        `http://localhost:3700/api/admin/subjects/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchData();
-    } catch {
-      setError("Failed to delete subject.");
-    }
-  };
+    useEffect(() => {
+        fetchSubjects();
+        fetchDepartments();
+    }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
+    // Handle Create Subject
+    const handleCreateSubject = async (e) => {
+        e.preventDefault();
+        try {
+            const token = getAdminToken();
+            await axios.post('http://localhost:3700/api/admin/subjects', {
+                subject_name: formSubjectName,
+                department_id: formDepartmentId,
+                year: parseInt(formYear),
+                section: formSection,
+                semester: parseInt(formSemester) // NEW: Send semester
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setShowCreateModal(false);
+            resetForm();
+            fetchSubjects(); // Refresh the list
+        } catch (err) {
+            console.error('Error creating subject:', err.response ? err.response.data : err.message);
+            setError(err.response?.data?.message || 'Failed to create subject.');
+        }
+    };
 
-  return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Subjects</h2>
-      {/* Create */}
-      <form onSubmit={handleCreate} className="mb-4 flex flex-wrap gap-2 items-end">
-        <input
-          value={newSubject.subject_name}
-          onChange={e => setNewSubject({ ...newSubject, subject_name: e.target.value })}
-          placeholder="Subject Name"
-          className="border px-2 py-1 rounded"
-          required
-        />
-        <select
-          value={newSubject.department_id}
-          onChange={e => setNewSubject({ ...newSubject, department_id: e.target.value })}
-          className="border px-2 py-1 rounded"
-          required
-        >
-          <option value="">Select Department</option>
-          {departments.map(dept => (
-            <option key={dept.department_id} value={dept.department_id}>
-              {dept.name}
-            </option>
-          ))}
-        </select>
-        <input
-          type="number"
-          value={newSubject.year}
-          onChange={e => setNewSubject({ ...newSubject, year: e.target.value })}
-          placeholder="Year"
-          className="border px-2 py-1 rounded"
-          required
-        />
-        <input
-          value={newSubject.section}
-          onChange={e => setNewSubject({ ...newSubject, section: e.target.value })}
-          placeholder="Section"
-          className="border px-2 py-1 rounded"
-          required
-        />
-        <input
-          value={newSubject.batch_name}
-          onChange={e => setNewSubject({ ...newSubject, batch_name: e.target.value })}
-          placeholder="Batch (optional)"
-          className="border px-2 py-1 rounded"
-        />
-        <button type="submit" className="bg-green-500 text-white px-3 py-1 rounded flex items-center">
-          <PlusCircle size={18} className="mr-1" /> Add
-        </button>
-      </form>
-      {/* List */}
-      <table className="min-w-full border">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4">Name</th>
-            <th className="py-2 px-4">Department</th>
-            <th className="py-2 px-4">Year</th>
-            <th className="py-2 px-4">Section</th>
-            <th className="py-2 px-4">Batch</th>
-            <th className="py-2 px-4">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {subjects.map((subj) => (
-            <tr key={subj.subject_id} className="border-t">
-              <td className="py-2 px-4">{subj.subject_name}</td>
-              <td className="py-2 px-4">
-                {departments.find(d => d.department_id === subj.department_id)?.name || subj.department_name || "N/A"}
-              </td>
-              <td className="py-2 px-4">{subj.year}</td>
-              <td className="py-2 px-4">{subj.section}</td>
-              <td className="py-2 px-4">{subj.batch_name}</td>
-              <td className="py-2 px-4 flex gap-2">
+    // Handle Edit Subject (modal open)
+    const handleEditClick = (subject) => {
+        setSelectedSubject(subject);
+        setFormSubjectName(subject.subject_name);
+        setFormDepartmentId(subject.department_id);
+        setFormYear(subject.year);
+        setFormSection(subject.section);
+        setFormSemester(subject.semester); // NEW: Set semester for editing
+        setShowEditModal(true);
+    };
+
+    // Handle Update Subject (modal submit)
+    const handleUpdateSubject = async (e) => {
+        e.preventDefault();
+        try {
+            const token = getAdminToken();
+            await axios.put(`http://localhost:3700/api/admin/subjects/${selectedSubject.subject_id}`, {
+                subject_name: formSubjectName,
+                department_id: formDepartmentId,
+                year: parseInt(formYear),
+                section: formSection,
+                semester: parseInt(formSemester) // NEW: Send semester
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setShowEditModal(false);
+            resetForm();
+            fetchSubjects(); // Refresh the list
+        } catch (err) {
+            console.error('Error updating subject:', err.response ? err.response.data : err.message);
+            setError(err.response?.data?.message || 'Failed to update subject.');
+        }
+    };
+
+    // Handle Delete Subject
+    const handleDeleteSubject = async (subjectId) => {
+        if (window.confirm('Are you sure you want to delete this subject?')) {
+            try {
+                const token = getAdminToken();
+                await axios.delete(`http://localhost:3700/api/admin/subjects/${subjectId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                fetchSubjects(); // Refresh the list
+            } catch (err) {
+                console.error('Error deleting subject:', err.response ? err.response.data : err.message);
+                setError(err.response?.data?.message || 'Failed to delete subject.');
+            }
+        }
+    };
+
+    const resetForm = () => {
+        setFormSubjectName('');
+        setFormDepartmentId('');
+        setFormYear('');
+        setFormSection('');
+        setFormSemester(''); // NEW: Reset semester
+        setSelectedSubject(null);
+    };
+
+    if (loading) return <div className="text-center text-xl mt-10">Loading Subjects...</div>;
+    if (error) return <div className="text-center text-red-500 text-xl mt-10">Error: {error}</div>;
+
+    return (
+        <div className="container mx-auto p-4">
+            <h1 className="text-3xl font-bold mb-6 text-center">Manage Subjects</h1>
+
+            <div className="flex justify-end mb-4">
                 <button
-                  onClick={() => {
-                    setEditing(subj);
-                    setEditSubject({
-                      subject_name: subj.subject_name,
-                      department_id: subj.department_id,
-                      year: subj.year,
-                      section: subj.section,
-                      batch_name: subj.batch_name || "",
-                    });
-                  }}
-                  className="text-blue-600"
-                  title="Edit"
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center"
                 >
-                  <Edit size={18} />
+                    <FaPlus className="mr-2" /> Add Subject
                 </button>
-                <button
-                  onClick={() => handleDelete(subj.subject_id)}
-                  className="text-red-600"
-                  title="Delete"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {/* Edit Modal */}
-      {editing && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-          <form onSubmit={handleUpdate} className="bg-white p-6 rounded shadow">
-            <h3 className="mb-2 font-semibold">Edit Subject</h3>
-            <input
-              value={editSubject.subject_name}
-              onChange={e => setEditSubject({ ...editSubject, subject_name: e.target.value })}
-              className="border px-2 py-1 rounded mb-2 w-full"
-              required
-              placeholder="Subject Name"
-            />
-            <select
-              value={editSubject.department_id}
-              onChange={e => setEditSubject({ ...editSubject, department_id: e.target.value })}
-              className="border px-2 py-1 rounded mb-2 w-full"
-              required
-            >
-              <option value="">Select Department</option>
-              {departments.map(dept => (
-                <option key={dept.department_id} value={dept.department_id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              value={editSubject.year}
-              onChange={e => setEditSubject({ ...editSubject, year: e.target.value })}
-              className="border px-2 py-1 rounded mb-2 w-full"
-              required
-              placeholder="Year"
-            />
-            <input
-              value={editSubject.section}
-              onChange={e => setEditSubject({ ...editSubject, section: e.target.value })}
-              className="border px-2 py-1 rounded mb-2 w-full"
-              required
-              placeholder="Section"
-            />
-            <input
-              value={editSubject.batch_name}
-              onChange={e => setEditSubject({ ...editSubject, batch_name: e.target.value })}
-              className="border px-2 py-1 rounded mb-2 w-full"
-              placeholder="Batch (optional)"
-            />
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setEditing(null)} className="px-3 py-1 bg-gray-300 rounded">Cancel</button>
-              <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded">Save</button>
             </div>
-          </form>
+
+            <div className="overflow-x-auto bg-white shadow-md rounded-lg">
+                {subjects.length === 0 ? (
+                    <p className="text-center text-gray-500 p-6">No subjects found.</p>
+                ) : (
+                    <table className="min-w-full leading-normal">
+                        <thead>
+                            <tr className="bg-gray-100 border-b-2 border-gray-200">
+                                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subject Name</th>
+                                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
+                                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Year</th>
+                                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Section</th>
+                                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Semester</th> {/* NEW HEADER */}
+                                <th className="px-5 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {subjects.map((subject) => (
+                                <tr key={subject.subject_id} className="border-b border-gray-200 hover:bg-gray-50">
+                                    <td className="px-5 py-5 text-sm">{subject.subject_name}</td>
+                                    <td className="px-5 py-5 text-sm">{subject.department_name}</td>
+                                    <td className="px-5 py-5 text-sm">{subject.year}</td>
+                                    <td className="px-5 py-5 text-sm">{subject.section}</td>
+                                    <td className="px-5 py-5 text-sm">{subject.semester || 'N/A'}</td> {/* NEW DATA DISPLAY */}
+                                    <td className="px-5 py-5 text-sm text-center">
+                                        <button
+                                            onClick={() => handleEditClick(subject)}
+                                            className="text-blue-600 hover:text-blue-900 mr-4"
+                                            title="Edit Subject"
+                                        >
+                                            <FaEdit />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteSubject(subject.subject_id)}
+                                            className="text-red-600 hover:text-red-900"
+                                            title="Delete Subject"
+                                        >
+                                            <FaTrash />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            {/* Create Subject Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+                    <div className="relative p-8 bg-white w-full max-w-md mx-auto rounded-lg shadow-lg">
+                        <h3 className="text-xl font-bold mb-4">Add New Subject</h3>
+                        <form onSubmit={handleCreateSubject}>
+                            {/* Subject Name */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Subject Name</label>
+                                <input
+                                    type="text"
+                                    value={formSubjectName}
+                                    onChange={(e) => setFormSubjectName(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                />
+                            </div>
+                            {/* Department */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Department</label>
+                                <select
+                                    value={formDepartmentId}
+                                    onChange={(e) => setFormDepartmentId(e.target.value)}
+                                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                >
+                                    <option value="">Select Department</option>
+                                    {departments.map(dept => (
+                                        <option key={dept.department_id} value={dept.department_id}>{dept.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {/* Year */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Year</label>
+                                <input
+                                    type="number"
+                                    value={formYear}
+                                    onChange={(e) => setFormYear(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                />
+                            </div>
+                            {/* Section */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Section</label>
+                                <input
+                                    type="text"
+                                    value={formSection}
+                                    onChange={(e) => setFormSection(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                />
+                            </div>
+                            {/* Semester */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Semester</label>
+                                <input
+                                    type="number" // Input type number for semester
+                                    value={formSemester}
+                                    onChange={(e) => setFormSemester(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    placeholder="e.g., 1 or 2"
+                                    min="1"
+                                    max="2"
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-4 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowCreateModal(false); resetForm(); }}
+                                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
+                                >
+                                    Add Subject
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Subject Modal */}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+                    <div className="relative p-8 bg-white w-full max-w-md mx-auto rounded-lg shadow-lg">
+                        <h3 className="text-xl font-bold mb-4">Edit Subject</h3>
+                        <form onSubmit={handleUpdateSubject}>
+                            {/* Subject Name */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Subject Name</label>
+                                <input
+                                    type="text"
+                                    value={formSubjectName}
+                                    onChange={(e) => setFormSubjectName(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                />
+                            </div>
+                            {/* Department */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Department</label>
+                                <select
+                                    value={formDepartmentId}
+                                    onChange={(e) => setFormDepartmentId(e.target.value)}
+                                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                >
+                                    <option value="">Select Department</option>
+                                    {departments.map(dept => (
+                                        <option key={dept.department_id} value={dept.department_id}>{dept.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {/* Year */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Year</label>
+                                <input
+                                    type="number"
+                                    value={formYear}
+                                    onChange={(e) => setFormYear(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                />
+                            </div>
+                            {/* Section */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Section</label>
+                                <input
+                                    type="text"
+                                    value={formSection}
+                                    onChange={(e) => setFormSection(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    required
+                                />
+                            </div>
+                            {/* Semester */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Semester</label>
+                                <input
+                                    type="number" // Input type number for semester
+                                    value={formSemester}
+                                    onChange={(e) => setFormSemester(e.target.value)}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    placeholder="e.g., 1 or 2"
+                                    min="1"
+                                    max="2"
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-4 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowEditModal(false); resetForm(); }}
+                                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
+                                >
+                                    Update Subject
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }

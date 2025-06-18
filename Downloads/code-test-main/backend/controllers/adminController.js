@@ -1,25 +1,29 @@
+// backend/controllers/adminController.js
+
 const adminModel = require('../models/adminModel');
 const { comparePassword, hashPassword } = require('../utils/passwordHasher');
-const { generateToken } = require('../config/jwt');
+const { generateToken } = require('../config/jwt'); // Ensure this is correctly used
 const archiver = require('archiver');
 const PDFDocument = require('pdfkit');
-const pool = require('../config/db');
+const pool = require('../config/db'); // Used for dashboard stats only
+
 
 const getDashboardStats = async (req, res) => {
     try {
         const [departments, subjects, students, faculties] = await Promise.all([
-            pool.query('SELECT COUNT(*) FROM departments'),
-            pool.query('SELECT COUNT(*) FROM subjects'),
-            pool.query('SELECT COUNT(*) FROM students'),
-            pool.query('SELECT COUNT(*) FROM faculties')
+            adminModel.countEntities('departments'),
+            adminModel.countEntities('subjects'),
+            adminModel.countEntities('students'),
+            adminModel.countEntities('faculties')
         ]);
         res.json({
-            departments: parseInt(departments.rows[0].count, 10),
-            subjects: parseInt(subjects.rows[0].count, 10),
-            students: parseInt(students.rows[0].count, 10),
-            faculties: parseInt(faculties.rows[0].count, 10)
+            departments: departments,
+            subjects: subjects,
+            students: students,
+            faculties: faculties
         });
     } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
         res.status(500).json({ message: 'Failed to fetch dashboard stats.' });
     }
 };
@@ -254,7 +258,7 @@ const deleteStudent = async (req, res) => {
     }
 };
 
-// ----------- SUBJECTS -----------
+// --- SUBJECTS ---
 const getSubjects = async (req, res) => {
     try {
         const subjects = await adminModel.getAllSubjects();
@@ -265,13 +269,15 @@ const getSubjects = async (req, res) => {
     }
 };
 
+// Modified to expect semester in req.body
 const createSubject = async (req, res) => {
-    const { subject_name, department_id, year, section, batch_name } = req.body;
-    if (!subject_name || !department_id || !year || !section) {
-        return res.status(400).json({ message: 'Subject name, department, year, and section are required.' });
+    const { subject_name, department_id, year, section, semester } = req.body; // Changed batch_name to semester
+    // Validate that semester is provided and is a number
+    if (!subject_name || !department_id || !year || !section || typeof semester !== 'number') {
+        return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required.' });
     }
     try {
-        const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, batch_name);
+        const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, semester); // Pass semester
         res.status(201).json({ message: 'Subject created successfully.', subject: newSubject });
     } catch (error) {
         console.error('Error creating subject:', error);
@@ -279,14 +285,16 @@ const createSubject = async (req, res) => {
     }
 };
 
+// Modified to expect semester in req.body
 const updateSubject = async (req, res) => {
     const { subject_id } = req.params;
-    const { subject_name, department_id, year, section, batch_name } = req.body;
-    if (!subject_name || !department_id || !year || !section) {
-        return res.status(400).json({ message: 'Subject name, department, year, and section are required for update.' });
+    const { subject_name, department_id, year, section, semester } = req.body; // Changed batch_name to semester
+    // Validate that semester is provided and is a number
+    if (!subject_name || !department_id || !year || !section || typeof semester !== 'number') {
+        return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required for update.' });
     }
     try {
-        const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, batch_name);
+        const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, semester); // Pass semester
         if (!updatedSubject) {
             return res.status(404).json({ message: 'Subject not found.' });
         }
@@ -312,17 +320,18 @@ const deleteSubject = async (req, res) => {
 };
 
 // ----------- APP SETTINGS (Admin View) -----------
-const getAttendanceThreshold = async (req, res) => { // Renamed from getSettings
+const getAttendanceThreshold = async (req, res) => {
     try {
         const threshold = await adminModel.getAppSetting('attendance_threshold');
-        res.status(200).json({ threshold: threshold ? parseInt(threshold) : 75 });
+        // Default to 75 if setting not found or invalid
+        res.status(200).json({ threshold: threshold ? parseInt(threshold, 10) : 75 });
     } catch (error) {
-        console.error('Error getting settings:', error);
-        res.status(500).json({ message: 'Internal server error getting settings.' });
+        console.error('Error getting attendance threshold setting:', error);
+        res.status(500).json({ message: 'Internal server error getting attendance threshold.' });
     }
 };
 
-const updateAttendanceThreshold = async (req, res) => { // Renamed from updateThreshold
+const updateAttendanceThreshold = async (req, res) => {
     const { threshold } = req.body;
     if (typeof threshold !== 'number' || threshold < 0 || threshold > 100) {
         return res.status(400).json({ message: 'Threshold must be a number between 0 and 100.' });
@@ -331,21 +340,36 @@ const updateAttendanceThreshold = async (req, res) => { // Renamed from updateTh
         await adminModel.updateAppSetting('attendance_threshold', String(threshold), 'Minimum attendance percentage for defaulters');
         res.status(200).json({ message: 'Attendance threshold updated successfully.' });
     } catch (error) {
-        console.error('Error updating threshold:', error);
-        res.status(500).json({ message: 'Internal server error updating threshold.' });
+        console.error('Error updating attendance threshold:', error);
+        res.status(500).json({ message: 'Internal server error updating attendance threshold.' });
+    }
+};
+
+// --- NEW: DEFAULTERS LIST ---
+const getLowAttendanceDefaulters = async (req, res) => {
+    try {
+        // Fetch the attendance threshold from app_settings first
+        const thresholdSetting = await adminModel.getAppSetting('attendance_threshold');
+        const attendanceThreshold = thresholdSetting ? parseInt(thresholdSetting, 10) : 75; // Default to 75%
+
+        const defaulters = await adminModel.getDefaultersList(attendanceThreshold);
+        res.status(200).json(defaulters);
+    } catch (error) {
+        console.error('Error getting low attendance defaulters:', error);
+        res.status(500).json({ message: 'Internal server error fetching defaulters list.' });
     }
 };
 
 // ----------- BACKUP DATA -----------
 const backupData = async (req, res) => {
     try {
-        const tables = ['departments', 'faculties', 'students', 'subjects', 'enrollments', 'attendance_sessions', 'attendance_records', 'app_settings', 'admins']; // Added app_settings, admins
+        const tables = ['departments', 'faculties', 'students', 'subjects', 'enrollments', 'attendance_sessions', 'attendance_records', 'app_settings', 'admins'];
         const archive = archiver('zip');
         res.attachment('backup.zip');
         archive.pipe(res);
 
         for (const table of tables) {
-            const result = await adminModel.getAllTableData(table); // Using model function
+            const result = await adminModel.getAllTableData(table);
             archive.append(JSON.stringify(result, null, 2), { name: `${table}.json` });
         }
         archive.finalize();
@@ -366,7 +390,7 @@ const printAttendanceSheet = async (req, res) => {
         doc.fontSize(20).text('Master Attendance Sheet', { align: 'center' });
         doc.moveDown();
 
-        const students = await adminModel.getStudentsForAttendanceSheet(); // Using model function
+        const students = await adminModel.getStudentsForAttendanceSheet();
         students.forEach((student, idx) => {
             doc.fontSize(12).text(`${idx + 1}. ${student.roll_number} - ${student.name}`);
         });
@@ -397,10 +421,10 @@ module.exports = {
     createSubject,
     updateSubject,
     deleteSubject,
-     getDashboardStats,
-    // Renamed exports for clarity
+    getDashboardStats,
     getAttendanceThreshold,
     updateAttendanceThreshold,
+    getLowAttendanceDefaulters, // EXPORT THE NEW DEFAULTERS CONTROLLER
     backupData,
     printAttendanceSheet
 };

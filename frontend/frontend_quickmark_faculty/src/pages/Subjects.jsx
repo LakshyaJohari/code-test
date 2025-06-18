@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronRight, Filter, X } from 'lucide-react';
+import { ChevronRight, Filter, X, Search } from 'lucide-react';
 
-// --- Filter Dropdown Sub-Component ---
+// --- Filter Dropdown Sub-Component (No changes needed here) ---
 const FilterDropdown = ({ subjects, activeFilters, onFilterChange, onClear, onClose }) => {
     const dropdownRef = useRef(null);
 
-    // Get unique options for each filter from the subjects data
     const filterOptions = useMemo(() => {
         const years = [...new Set(subjects.map(s => s.year))].sort();
         const departments = [...new Set(subjects.map(s => s.department))].sort();
@@ -13,7 +12,6 @@ const FilterDropdown = ({ subjects, activeFilters, onFilterChange, onClear, onCl
         return { years, departments, sections };
     }, [subjects]);
 
-    // Close dropdown if clicked outside
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -68,6 +66,8 @@ const FilterDropdown = ({ subjects, activeFilters, onFilterChange, onClear, onCl
 
 // --- Main Subjects Component ---
 const Subjects = ({ subjects, onSelectSubject }) => {
+    // ✨ 1. Add state for the search term
+    const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
         year: '',
@@ -83,39 +83,60 @@ const Subjects = ({ subjects, onSelectSubject }) => {
         setFilters({ year: '', department: '', section: '' });
     };
 
-    // Filter the subjects based on the current filter state
+    // ✨ 2. Update filtering logic to include the search term
     const filteredSubjects = useMemo(() => {
+        const term = searchTerm.toLowerCase();
         return subjects.filter(subject => {
-            return (filters.year ? subject.year == filters.year : true) &&
-                   (filters.department ? subject.department === filters.department : true) &&
-                   (filters.section ? subject.section === filters.section : true);
+            const matchesSearch = subject.name.toLowerCase().includes(term) ||
+                                  subject.batchName.toLowerCase().includes(term);
+
+            const matchesFilters = (filters.year ? subject.year == filters.year : true) &&
+                                   (filters.department ? subject.department === filters.department : true) &&
+                                   (filters.section ? subject.section === filters.section : true);
+
+            return matchesSearch && matchesFilters;
         });
-    }, [subjects, filters]);
+    }, [subjects, filters, searchTerm]);
 
     return (
         <div className="w-full max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-text-primary">Subjects</h2>
                     <p className="text-text-secondary mt-1">Click on a subject to view student details and attendance.</p>
                 </div>
-                <div className="relative">
-                    <button 
-                        onClick={() => setShowFilters(!showFilters)} 
-                        className="flex items-center px-4 py-2 border border-border-color rounded-lg text-text-secondary hover:bg-gray-50"
-                    >
-                        <Filter size={18} className="mr-2"/>
-                        Filter
-                    </button>
-                    {showFilters && (
-                        <FilterDropdown 
-                            subjects={subjects} 
-                            activeFilters={filters}
-                            onFilterChange={handleFilterChange}
-                            onClear={clearFilters}
-                            onClose={() => setShowFilters(false)}
+                {/* ✨ 3. Container for search and filter controls */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative w-full md:w-64">
+                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search subjects..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-border-color rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                         />
-                    )}
+                    </div>
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowFilters(!showFilters)} 
+                            className="flex items-center px-4 py-2 border border-border-color rounded-lg text-text-secondary hover:bg-gray-50"
+                        >
+                            <Filter size={18} className="mr-2"/>
+                            Filter
+                        </button>
+                        {showFilters && (
+                            <FilterDropdown 
+                                subjects={subjects} 
+                                activeFilters={filters}
+                                onFilterChange={handleFilterChange}
+                                onClear={clearFilters}
+                                onClose={() => setShowFilters(false)}
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -133,21 +154,30 @@ const Subjects = ({ subjects, onSelectSubject }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-color">
-                            {filteredSubjects.map((subject) => (
-                                <tr 
-                                    key={subject.id} 
-                                    className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
-                                    onClick={() => onSelectSubject(subject)}
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-text-primary">{subject.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-text-secondary">{subject.year}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-text-secondary">{subject.section}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-text-secondary">{subject.department}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                                        <ChevronRight size={20} className="text-gray-400"/>
+                             {/* ✨ 4. Add an empty state message */}
+                            {filteredSubjects.length > 0 ? (
+                                filteredSubjects.map((subject) => (
+                                    <tr 
+                                        key={subject.id} 
+                                        className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                                        onClick={() => onSelectSubject(subject)}
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-text-primary">{subject.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-text-secondary">{subject.year}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-text-secondary">{subject.section}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-text-secondary">{subject.department}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                            <ChevronRight size={20} className="text-gray-400"/>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="text-center py-10 text-gray-500">
+                                        No subjects found matching your criteria.
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>

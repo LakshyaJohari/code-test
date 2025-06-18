@@ -1,93 +1,105 @@
-import React, { useState } from 'react';
-import { QrCode, ArrowLeft, Play, Square } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, Play, Square } from "lucide-react";
+import QRCode from "react-qr-code";
 
 const StartQR = ({ subject, onBack, onSubmit }) => {
-  const [attendanceWeight, setAttendanceWeight] = useState(2);
-  const [isSessionActive, setIsSessionActive] = useState(true); // Session starts as active
+  const [attendanceWeight, setAttendanceWeight] = useState(null); // Initially null
+  const [isSessionActive, setIsSessionActive] = useState(true);
+  const [qrData, setQrData] = useState("");
+
+  useEffect(() => {
+    if (!subject) return;
+
+    const updateQR = () => {
+      const timestamp = Date.now();
+      setQrData(`${subject.id}-${timestamp}`);
+    };
+
+    if (isSessionActive) {
+      updateQR();
+      const interval = setInterval(updateQR, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [subject, isSessionActive]);
+
+  const handleToggle = () => {
+    setIsSessionActive(!isSessionActive);
+  };
 
   const handleSubmit = () => {
-    // In a real app, this would submit the attendance data to the backend.
-    alert(`Attendance submitted for ${subject.name} with weight ${attendanceWeight}.`);
-    onSubmit(); // Use the new onSubmit prop to navigate
+    if (!attendanceWeight) {
+      alert("Please select an attendance weight before submitting.");
+      return;
+    }
+    alert(
+      `Attendance submitted for ${subject.name} with weight ${attendanceWeight}`
+    );
+    onSubmit();
   };
 
-  const handleToggleSession = () => {
-    setIsSessionActive(!isSessionActive); // Toggle the session state
-  };
+  if (!subject) return <div>Loading subject...</div>;
 
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-      
-      {/* Back Button -> Navigates to MarkAttendance page */}
-      <div className="w-full flex mb-6">
-        <button onClick={onBack} className="flex items-center text-text-secondary hover:text-text-primary">
-          <ArrowLeft size={18} className="mr-2" />
-          Back to Subject Selection
-        </button>
-      </div>
+    <div className="max-w-2xl mx-auto p-6">
+      <button onClick={onBack} className="mb-4 flex items-center text-blue-600">
+        <ArrowLeft className="mr-2" size={18} />
+        Back
+      </button>
 
-      <div className="w-full bg-white p-8 rounded-lg shadow-md flex flex-col items-center">
-        {/* Header */}
-        <h2 className="text-3xl font-bold text-text-primary mb-2">
-          {subject ? subject.name : 'Loading...'}
-        </h2>
-        <p className="text-text-secondary mb-8">
-          {isSessionActive 
-            ? "Students can now scan the QR code to mark their attendance."
-            : "Session is paused. Press Start to resume."
-          }
-        </p>
+      <h2 className="text-xl font-bold mb-2">{subject.name}</h2>
+      <p className="mb-4">
+        {isSessionActive
+          ? "QR is rotating every 5 seconds."
+          : "QR is paused. Set attendance weight and submit."}
+      </p>
 
-        {/* Start/Stop Toggle Button */}
-        <button
-          onClick={handleToggleSession}
-          className={`w-full max-w-xs text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 mb-8 flex items-center justify-center ${
-            isSessionActive 
-            ? 'bg-danger hover:bg-danger-light' 
-            : 'bg-success hover:bg-green-600'
-          }`}
-        >
-          {isSessionActive ? <Square className="mr-2" size={20}/> : <Play className="mr-2" size={20}/>}
-          {isSessionActive ? 'Stop' : 'Start'}
-        </button>
-
-        {/* This section is now conditional based on the session state */}
-        {isSessionActive && (
-            <>
-              {/* QR Code Placeholder */}
-              <div className="bg-gray-100 p-6 rounded-lg mb-8 shadow-inner animate-pulse">
-                <div className="w-64 h-64 bg-white flex items-center justify-center rounded-md">
-                  <QrCode size={200} className="text-gray-800" />
-                </div>
-              </div>
-
-              {/* Attendance Weight Slider */}
-              <div className="w-full max-w-xs mb-8">
-                <label htmlFor="attendance-weight" className="block text-sm font-medium text-text-secondary mb-2">
-                  Attendance Weight ({attendanceWeight})
-                </label>
-                <input
-                  id="attendance-weight"
-                  type="range"
-                  min="1"
-                  max="4"
-                  step="1"
-                  value={attendanceWeight}
-                  onChange={(e) => setAttendanceWeight(e.target.value)}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-
-              {/* Submit Attendance Button */}
-              <button
-                onClick={handleSubmit}
-                className="w-full max-w-xs bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark transition-colors duration-300"
-              >
-                Submit Attendance
-              </button>
-            </>
+      <button
+        onClick={handleToggle}
+        className={`mb-6 px-4 py-2 rounded-lg text-white font-bold ${
+          isSessionActive ? "bg-red-600" : "bg-green-600"
+        }`}
+      >
+        {isSessionActive ? (
+          <Square size={16} className="inline mr-1" />
+        ) : (
+          <Play size={16} className="inline mr-1" />
         )}
-      </div>
+        {isSessionActive ? "Stop QR" : "Start QR"}
+      </button>
+
+      {isSessionActive && (
+        <div className="p-3 rounded-lg mb-4 w-50 h-100">
+          <QRCode value={qrData} size={350} />
+        </div>
+      )}
+
+      {!isSessionActive && (
+        <>
+          <label className="block mb-2 text-sm">
+            Attendance Weight: {attendanceWeight ?? "Not Selected"}
+          </label>
+          <input
+            type="range"
+            min="1"
+            max="4"
+            value={attendanceWeight || ""}
+            onChange={(e) => setAttendanceWeight(Number(e.target.value))}
+            className="w-full mb-6"
+          />
+
+          <button
+            onClick={handleSubmit}
+            className={`px-6 py-2 rounded-lg text-white font-bold ${
+              attendanceWeight
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
+            disabled={!attendanceWeight}
+          >
+            Submit Attendance
+          </button>
+        </>
+      )}
     </div>
   );
 };

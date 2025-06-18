@@ -34,19 +34,18 @@ const mockSubjects = [
   { id: 5, name: 'Subject E', batchName: 'Batch 2024', year: 1, section: 'A', department: 'ECE' },
 ];
 
-// *** ADDED MOCK DATA FOR ALL SUBJECTS ***
 const mockStudents = {
     1: [
-        { id: 201, name: 'Alice Johnson', rollNo: '2023-ECE-001', attendance: 88 },
+        { id: 201, name: 'Alice Johnson', rollNo: '2023-ECE-001', attendance: 74 },
         { id: 202, name: 'Bob Williams', rollNo: '2023-ECE-002', attendance: 92 },
     ],
     2: [
-        { id: 301, name: 'Charlie Brown', rollNo: '2024-ECE-001', attendance: 75 },
+        { id: 301, name: 'Charlie Brown', rollNo: '2024-ECE-001', attendance: 72 },
     ],
     3: [
         { id: 401, name: 'Diana Miller', rollNo: '2022-IT-001', attendance: 95 },
         { id: 402, name: 'Eve Davis', rollNo: '2022-IT-002', attendance: 68 },
-        { id: 403, name: 'Frank White', rollNo: '2022-IT-003', attendance: 81 },
+        { id: 403, name: 'Frank White', rollNo: '2022-IT-003', attendance: 71 },
     ],
     4: [ 
         { id: 101, name: 'Ethan Harper', rollNo: '2021-MATH-001', attendance: 90 },
@@ -55,11 +54,6 @@ const mockStudents = {
         { id: 104, name: 'Ava Davis', rollNo: '2021-MATH-004', attendance: 95 },
         { id: 105, name: 'Liam Evans', rollNo: '2021-MATH-005', attendance: 65 },
         { id: 106, name: 'Sophia Foster', rollNo: '2021-MATH-006', attendance: 80 },
-        { id: 107, name: 'Jackson Green', rollNo: '2021-MATH-007', attendance: 72 },
-        { id: 108, name: 'Isabella Hayes', rollNo: '2021-MATH-008', attendance: 88 },
-        { id: 109, name: 'Lucas Ingram', rollNo: '2021-MATH-009', attendance: 68 },
-        { id: 110, name: 'Mia Kelly', rollNo: '2021-MATH-010', attendance: 92 },
-        { id: 111, name: 'James Nelson', rollNo: '2021-MATH-011', attendance: 74 },
     ],
     5: [] // Subject E has no students enrolled
 };
@@ -115,7 +109,12 @@ function App() {
     }
     switch (route) {
       case '/dashboard':
-        return <Dashboard user={mockUser} onNavigate={navigate} onStartAttendance={handleStartAttendanceFlow} />;
+        // *** UPDATED: Pass all necessary data to the Dashboard ***
+        return <Dashboard 
+                  user={mockUser} 
+                  subjects={mockSubjects} 
+                  students={mockStudents}
+               />;
       case '/mark-attendance':
         return <MarkAttendance subjects={mockSubjects} onStart={handleStartQR} />;
       case '/subjects':
@@ -144,7 +143,7 @@ function App() {
       case '/settings':
         return <Settings />;
       default:
-        return <Dashboard user={mockUser} onNavigate={navigate} onStartAttendance={handleStartAttendanceFlow}/>;
+        return <Dashboard user={mockUser} subjects={mockSubjects} students={mockStudents} />;
     }
   };
 
@@ -152,9 +151,16 @@ function App() {
     <div className="flex min-h-screen bg-white-100">
       {isAuthenticated && <Sidebar currentRoute={route} onNavigate={navigate} />}
       <div className="flex-1 flex flex-col">
-        {isAuthenticated && <Navbar user={mockUser} onNavigate={navigate} />}
+        {isAuthenticated && (
+          <Navbar
+            user={mockUser}
+            onNavigate={navigate}
+            // ✅ CHANGE THIS LINE: Pass the current route to the Navbar
+            currentRoute={route}
+          />
+        )}
         <main className="p-4 sm:p-6 md:p-8 flex-1">
-            {renderContent()}
+          {renderContent()}
         </main>
       </div>
     </div>

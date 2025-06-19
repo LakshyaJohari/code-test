@@ -91,7 +91,7 @@ function App() {
 
   const handleViewStudentCalendar = (student) => {
     setSelectedStudent(student);
-    navigate('/calendar');
+    navigate('./pages/Calendar');
   }
 
   const handleStartAttendanceFlow = () => {

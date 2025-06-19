@@ -56,7 +56,6 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
             {isFilterOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl p-4 z-20 border">
                 <div className="flex justify-between items-center mb-2"><h4 className="font-semibold">Filter Options</h4><button onClick={clearFilters} className="text-sm text-blue-600 hover:underline">Clear</button></div>
-                <div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-1">Year</label><select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="w-full p-2 border rounded-md"><option value="">All</option>{uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Department</label><select value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)} className="w-full p-2 border rounded-md"><option value="">All</option>{uniqueDepartments.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
               </div>
             )}
@@ -72,7 +71,6 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
             <tr className="border-b">
               <th className="py-2 px-4">Name</th>
               <th className="py-2 px-4">Roll No.</th>
-              <th className="py-2 px-4">Year</th>
               <th className="py-2 px-4">Department</th>
               <th className="py-2 px-4 text-right">Actions</th>
             </tr>
@@ -82,7 +80,6 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
               <tr key={student.id} className="border-b hover:bg-gray-50">
                 <td className="py-3 px-4 font-medium">{student.name}</td>
                 <td className="py-3 px-4">{student.rollNo}</td>
-                <td className="py-3 px-4">{student.year}</td>
                 <td className="py-3 px-4">{student.department}</td>
                 <td className="py-3 px-4 text-right">
                    <button onClick={() => onEdit(student)} className="text-blue-500 hover:underline font-semibold text-sm mr-4">Edit</button>

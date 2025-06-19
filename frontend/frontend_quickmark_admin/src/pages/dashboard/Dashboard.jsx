@@ -1,4 +1,3 @@
-// src/pages/dashboard/Dashboard.jsx
 import React, { useState, useMemo } from "react";
 import {
   BarChart,
@@ -12,10 +11,9 @@ import {
 } from "recharts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const ITEMS_PER_PAGE = 5; // Number of subjects to show per page
+const ITEMS_PER_PAGE = 5;
 
 export default function Dashboard({ allStudents, allSubjects }) {
-  // State for filters and pagination
   const [filters, setFilters] = useState({
     year: "",
     department: "",
@@ -23,24 +21,19 @@ export default function Dashboard({ allStudents, allSubjects }) {
   });
   const [currentPage, setCurrentPage] = useState(0);
 
-  // --- Data Processing and Filtering ---
   const chartData = useMemo(() => {
-    // 1. Calculate number of defaulters for each subject
     const defaultersBySubject = allSubjects.map((subject) => {
-      // Find students in the same department and year as the subject
       const studentsInSubject = allStudents.filter(
         (student) =>
           student.department === subject.department &&
           student.year === subject.year
       );
-      // Count how many of those students are defaulters
       const defaulterCount = studentsInSubject.filter(
         (student) => student.attendance < 75
       ).length;
       return { ...subject, defaulters: defaulterCount };
     });
 
-    // 2. Apply filters to the processed data
     return defaultersBySubject.filter((subject) => {
       const yearMatch = filters.year
         ? subject.year.toString() === filters.year
@@ -55,7 +48,6 @@ export default function Dashboard({ allStudents, allSubjects }) {
     });
   }, [allStudents, allSubjects, filters]);
 
-  // --- Pagination Logic ---
   const paginatedData = useMemo(() => {
     const startIndex = currentPage * ITEMS_PER_PAGE;
     return chartData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -63,18 +55,16 @@ export default function Dashboard({ allStudents, allSubjects }) {
 
   const totalPages = Math.ceil(chartData.length / ITEMS_PER_PAGE);
 
-  // --- Event Handlers ---
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(0); // Reset to first page on filter change
+    setCurrentPage(0);
   };
 
   const goToNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
   const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 0));
 
-  // Get unique values for filter dropdowns
   const uniqueYears = useMemo(
     () => [...new Set(allSubjects.map((s) => s.year))],
     [allSubjects]
@@ -100,7 +90,7 @@ export default function Dashboard({ allStudents, allSubjects }) {
           name="year"
           value={filters.year}
           onChange={handleFilterChange}
-          className="p-2 border rounded-md bg-gray-50"
+          className="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
         >
           <option value="">All Years</option>
           {uniqueYears.map((y) => (
@@ -113,7 +103,7 @@ export default function Dashboard({ allStudents, allSubjects }) {
           name="department"
           value={filters.department}
           onChange={handleFilterChange}
-          className="p-2 border rounded-md bg-gray-50"
+          className="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
         >
           <option value="">All Departments</option>
           {uniqueDepartments.map((d) => (
@@ -126,7 +116,7 @@ export default function Dashboard({ allStudents, allSubjects }) {
           name="faculty"
           value={filters.faculty}
           onChange={handleFilterChange}
-          className="p-2 border rounded-md bg-gray-50"
+          className="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
         >
           <option value="">All Faculty</option>
           {uniqueFaculty.map((f) => (
@@ -138,35 +128,45 @@ export default function Dashboard({ allStudents, allSubjects }) {
       </div>
 
       {/* Chart */}
-      <div style={{ width: "100%", height: 400 }}>
-        <ResponsiveContainer>
-          <BarChart
-            data={paginatedData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            layout="vertical"
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              type="category"
-              dataKey="name"
-              width={150}
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis
-              type=" number"
-              allowDecimals={false}
-              dataKey="defaulters"
-              name="Number of Defaulters"
-            />
-            <Tooltip cursor={{ fill: "#fafafa" }} />
-            <Legend />
-            <Bar
-              dataKey="name"
-              fill="#EF4444"
-              name="Subjects"
-            />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <div style={{ width: "100%", height: 400 }}>
+          <ResponsiveContainer>
+            <BarChart
+              data={paginatedData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              layout="vertical"
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis
+                type="number"
+                allowDecimals={false}
+                tick={{ fontSize: 12, fill: "#6B7280" }}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={150}
+                tick={{ fontSize: 13, fill: "#374151" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#ffffff",
+                  borderColor: "#e5e7eb",
+                }}
+                labelStyle={{ color: "#111827", fontWeight: "500" }}
+                itemStyle={{ color: "#1D4ED8" }}
+              />
+              <Legend verticalAlign="top" height={36} />
+              <Bar
+                dataKey="defaulters"
+                fill="#1D4ED8"
+                radius={[4, 4, 0, 0]}
+                name="Defaulters"
+                barSize={20}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Pagination Controls */}
@@ -177,16 +177,24 @@ export default function Dashboard({ allStudents, allSubjects }) {
         <button
           onClick={goToPrevPage}
           disabled={currentPage === 0}
-          className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+          className={`px-3 py-1 border text-sm rounded-md mr-2 ${
+            currentPage === 0
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-white text-black hover:bg-gray-100 border-gray-300"
+          }`}
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={18} />
         </button>
         <button
           onClick={goToNextPage}
           disabled={currentPage >= totalPages - 1}
-          className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+          className={`px-3 py-1 border text-sm rounded-md ${
+            currentPage >= totalPages - 1
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-white text-black hover:bg-gray-100 border-gray-300"
+          }`}
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={18} />
         </button>
       </div>
     </div>

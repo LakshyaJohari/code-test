@@ -45,8 +45,8 @@ export default function Sidebar({ currentPage, navigateTo, onLogout }) {
                   onClick={() => navigateTo(item.path)}
                   className={`w-full flex items-center px-4 py-2.5 my-1 text-sm font-medium rounded-lg transition-colors duration-200 ${
                     isActive
-                      ? "bg-slate-700 text-white"
-                      : "text-black-300 hover:bg-slate-700 hover:text-white"
+                      ? "bg-primary text-white"
+                      : "text-black-300 hover:bg-primary hover:text-white"
                   }`}
                 >
                   {getIcon(item)}

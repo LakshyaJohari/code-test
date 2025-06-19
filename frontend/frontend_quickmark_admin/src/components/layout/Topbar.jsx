@@ -24,29 +24,7 @@ export default function Topbar({ title, showBackButton, onBack, onLogout }) {
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
       <div className="flex items-center">
-        {showBackButton && (
-          <button
-            onClick={onBack}
-            className="mr-4 text-gray-600 hover:text-gray-800"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </button>
-        )}
-        <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-      </div>
+        </div>
       <div className="flex items-center space-x-4">
         <button className="p-2 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700">
           <svg

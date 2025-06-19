@@ -143,20 +143,32 @@ const getAllStudents = async () => {
     }
 };
 
+// const createStudent = async (rollNumber, name, email, departmentId, currentYear, section) => {
+//     // Corrected query: Changed ($5) to $5
+//     const query = `
+//         INSERT INTO students (roll_number, name, email, department_id, current_year, section)
+//         VALUES ($1, $2, $3, $4, $5, $6)
+//         RETURNING student_id, roll_number, name, email;
+//     `;
+//     try {
+//         const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section]);
+//         return result.rows[0];
+//     } catch (error) {
+//         console.error('Error creating student:', error);
+//         throw new Error('Database insertion failed');
+//     }
+// };
+
 const createStudent = async (rollNumber, name, email, departmentId, currentYear, section) => {
-    // Corrected query: Changed ($5) to $5
+    const defaultPassword = 'changeme123'; // or generate a random one
+    const hashedPassword = await hashPassword(defaultPassword);
     const query = `
-        INSERT INTO students (roll_number, name, email, department_id, current_year, section)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO students (roll_number, name, email, department_id, current_year, section, password_hash)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING student_id, roll_number, name, email;
     `;
-    try {
-        const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section]);
-        return result.rows[0];
-    } catch (error) {
-        console.error('Error creating student:', error);
-        throw new Error('Database insertion failed');
-    }
+    const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, hashedPassword]);
+    return result.rows[0];
 };
 
 const updateStudent = async (studentId, rollNumber, name, email, departmentId, currentYear, section) => {

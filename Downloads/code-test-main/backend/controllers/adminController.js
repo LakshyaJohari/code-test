@@ -58,7 +58,9 @@ const registerAdmin = async (req, res) => {
 };
 
 const loginAdmin = async (req, res) => {
+    console.log('Login request body:', req.body); // Debugging log
     const { email, password } = req.body;
+    console.log('Login attempt with email:', email); // Debugging log
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
     }
@@ -83,7 +85,7 @@ const loginAdmin = async (req, res) => {
         });
     } catch (error) {
         console.error('Admin login error:', error);
-        res.status(500).json({ message: 'Internal server error during login.' });
+        res.status(500).json({ message: error.message || 'Internal server error during admin login.' });
     }
 };
 

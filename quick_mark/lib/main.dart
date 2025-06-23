@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'screens/app_initializer.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/home_screen.dart';
+import 'pages/onboarding/onboarding.dart';
 
 void main() {
   runApp(const MainApp());
@@ -14,10 +19,15 @@ class MainApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         primaryColor: const Color(0xFF007AFF),
-        fontFamily:
-            'SF Pro Display', // You can change this to your preferred font
+        fontFamily: 'SF Pro Display',
       ),
-      home: Placeholder(),
+      home: const AppInitializer(),
+      routes: {
+        '/onboarding': (context) => const OnboardingScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }

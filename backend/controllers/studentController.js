@@ -151,9 +151,49 @@ const getMyAttendanceCalendar = async (req, res) => {
     }
 };
 
+// Register a new student
+const registerStudent = async (req, res) => {
+    const { name, roll_number, email, password, department_id, current_year, section } = req.body;
+    if (!name || !roll_number || !email || !password || !department_id) {
+        return res.status(400).json({ message: 'Name, roll number, email, password, and department_id are required.' });
+    }
+    try {
+        // Check if student already exists
+        const existingStudent = await studentModel.findStudentByRollNumber(roll_number);
+        if (existingStudent) {
+            return res.status(409).json({ message: 'Student with this roll number already exists.' });
+        }
+        // Hash password
+        const password_hash = await hashPassword(password);
+        // Insert new student
+        const newStudent = await studentModel.createStudent({
+            name,
+            roll_number,
+            email,
+            password_hash,
+            department_id,
+            current_year,
+            section
+        });
+        res.status(201).json({ message: 'Student registered successfully!', student: {
+            id: newStudent.student_id,
+            roll_number: newStudent.roll_number,
+            name: newStudent.name,
+            email: newStudent.email,
+            department_id: newStudent.department_id,
+            current_year: newStudent.current_year,
+            section: newStudent.section
+        }});
+    } catch (error) {
+        console.error('Student registration error:', error);
+        res.status(500).json({ message: 'Internal server error during registration.' });
+    }
+};
+
 module.exports = {
     loginStudent,
     getMyStudentProfile,
     markAttendanceByLoggedInStudent,
-    getMyAttendanceCalendar
+    getMyAttendanceCalendar,
+    registerStudent
 };

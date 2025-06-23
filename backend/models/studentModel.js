@@ -50,8 +50,25 @@ const findStudentByRollNumber = async (rollNumber) => {
     }
 };
 
+// Create a new student
+const createStudent = async ({ name, roll_number, email, password_hash, department_id, current_year, section }) => {
+    const query = `
+        INSERT INTO students (name, roll_number, email, password_hash, department_id, current_year, section)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *;
+    `;
+    try {
+        const result = await pool.query(query, [name, roll_number, email, password_hash, department_id, current_year, section]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error creating student:', error);
+        throw new Error('Database insert failed');
+    }
+};
+
 module.exports = {
     getStudentsBySubjectId,
     isStudentEnrolledInSubject,
-    findStudentByRollNumber // ADD THIS
+    findStudentByRollNumber,
+    createStudent
 };

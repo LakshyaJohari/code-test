@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_models.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://localhost:3700/api/student/auth';
+  static const String baseUrl = 'http://10.0.2.2:3700/api/student/auth';
 
   // Store and retrieve JWT token
   static Future<void> saveToken(String token) async {

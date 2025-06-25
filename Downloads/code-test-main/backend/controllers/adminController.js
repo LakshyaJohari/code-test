@@ -1,34 +1,1293 @@
+// // backend/controllers/adminController.js
+
+// const adminModel = require('../models/adminModel');
+// const { comparePassword, hashPassword } = require('../utils/passwordHasher');
+// const { generateToken } = require('../config/jwt'); // Ensure this is correctly used
+// const archiver = require('archiver');
+// const PDFDocument = require('pdfkit');
+// const pool = require('../config/db'); // Used for dashboard stats only
+
+
+// const getDashboardStats = async (req, res) => {
+//     try {
+//         const [departments, subjects, students, faculties] = await Promise.all([
+//             adminModel.countEntities('departments'),
+//             adminModel.countEntities('subjects'),
+//             adminModel.countEntities('students'),
+//             adminModel.countEntities('faculties')
+//         ]);
+//         res.json({
+//             departments: departments,
+//             subjects: subjects,
+//             students: students,
+//             faculties: faculties
+//         });
+//     } catch (err) {
+//         console.error('Error fetching dashboard stats:', err);
+//         res.status(500).json({ message: 'Failed to fetch dashboard stats.' });
+//     }
+// };
+
+// // --- ADMIN AUTH ---
+// const registerAdmin = async (req, res) => {
+//     const { name, email, password } = req.body;
+//     if (!name || !email || !password) {
+//         return res.status(400).json({ message: 'Name, email, and password are required.' });
+//     }
+//     try {
+//         const existingAdmin = await adminModel.findAdminByEmail(email);
+//         if (existingAdmin) {
+//             return res.status(409).json({ message: 'Admin with this email already exists.' });
+//         }
+//         const hashedPassword = await hashPassword(password);
+//         const newAdmin = await adminModel.createAdmin(name, email, hashedPassword);
+//         const token = generateToken({ id: newAdmin.admin_id, email: newAdmin.email, isAdmin: true });
+//         res.status(201).json({
+//             message: 'Admin registered successfully!',
+//             admin: {
+//                 id: newAdmin.admin_id,
+//                 name: newAdmin.name,
+//                 email: newAdmin.email
+//             },
+//             token
+//         });
+//     } catch (error) {
+//         console.error('Admin registration error:', error);
+//         res.status(500).json({ message: 'Internal server error during registration.' });
+//     }
+// };
+
+// const loginAdmin = async (req, res) => {
+//     console.log('Login request body:', req.body); // Debugging log
+//     const { email, password } = req.body;
+//     console.log('Login attempt with email:', email); // Debugging log
+//     if (!email || !password) {
+//         return res.status(400).json({ message: 'Email and password are required.' });
+//     }
+//     try {
+//         const admin = await adminModel.findAdminByEmail(email);
+//         if (!admin) {
+//             return res.status(401).json({ message: 'Invalid credentials.' });
+//         }
+//         const isMatch = await comparePassword(password, admin.password_hash);
+//         if (!isMatch) {
+//             return res.status(401).json({ message: 'Invalid credentials.' });
+//         }
+//         const token = generateToken({ id: admin.admin_id, email: admin.email, isAdmin: true });
+//         res.status(200).json({
+//             message: 'Logged in successfully!',
+//             admin: {
+//                 id: admin.admin_id,
+//                 name: admin.name,
+//                 email: admin.email
+//             },
+//             token
+//         });
+//     } catch (error) {
+//         console.error('Admin login error:', error);
+//         res.status(500).json({ message: error.message || 'Internal server error during admin login.' });
+//     }
+// };
+
+// // --- DEPARTMENTS ---
+// const getDepartments = async (req, res) => {
+//     try {
+//         const departments = await adminModel.getAllDepartments();
+//         res.status(200).json(departments);
+//     } catch (error) {
+//         console.error('Error getting departments:', error);
+//         res.status(500).json({ message: 'Internal server error getting departments.' });
+//     }
+// };
+
+// const createDepartment = async (req, res) => {
+//     const { name } = req.body;
+//     if (!name) {
+//         return res.status(400).json({ message: 'Department name is required.' });
+//     }
+//     try {
+//         const newDepartment = await adminModel.createDepartment(name);
+//         res.status(201).json({ message: 'Department created successfully.', department: newDepartment });
+//     } catch (error) {
+//         console.error('Error creating department:', error);
+//         res.status(500).json({ message: 'Internal server error creating department.' });
+//     }
+// };
+
+// const updateDepartment = async (req, res) => {
+//     const { department_id } = req.params;
+//     const { name } = req.body;
+//     if (!name) {
+//         return res.status(400).json({ message: 'Department name is required.' });
+//     }
+//     try {
+//         const updatedDepartment = await adminModel.updateDepartment(department_id, name);
+//         if (!updatedDepartment) {
+//             return res.status(404).json({ message: 'Department not found.' });
+//         }
+//         res.status(200).json({ message: 'Department updated successfully.', department: updatedDepartment });
+//     } catch (error) {
+//         console.error('Error updating department:', error);
+//         res.status(500).json({ message: 'Internal server error updating department.' });
+//     }
+// };
+
+// const deleteDepartment = async (req, res) => {
+//     const { department_id } = req.params;
+//     try {
+//         const deletedDepartment = await adminModel.deleteDepartment(department_id);
+//         if (!deletedDepartment) {
+//             return res.status(404).json({ message: 'Department not found.' });
+//         }
+//         res.status(200).json({ message: 'Department deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting department:', error);
+//         res.status(500).json({ message: 'Internal server error deleting department.' });
+//     }
+// };
+
+// // --- FACULTY ---
+// const getFaculties = async (req, res) => {
+//     try {
+//         const faculties = await adminModel.getAllFaculties();
+//         res.status(200).json(faculties);
+//     } catch (error) {
+//         console.error('Error getting faculties:', error);
+//         res.status(500).json({ message: 'Internal server error getting faculties.' });
+//     }
+// };
+
+// const createFaculty = async (req, res) => {
+//     const { name, email, password, department_id } = req.body;
+//     if (!name || !email || !password || !department_id) {
+//         return res.status(400).json({ message: 'All faculty fields are required.' });
+//     }
+//     try {
+//         const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id);
+//         res.status(201).json({ message: 'Faculty created successfully.', faculty: newFaculty });
+//     } catch (error) {
+//         console.error('Error creating faculty:', error);
+//         res.status(500).json({ message: 'Internal server error creating faculty.' });
+//     }
+// };
+
+// const updateFaculty = async (req, res) => {
+//     const { faculty_id } = req.params;
+//     const { name, email, department_id } = req.body;
+//     if (!name || !email || !department_id) {
+//         return res.status(400).json({ message: 'All faculty fields are required for update.' });
+//     }
+//     try {
+//         const updatedFaculty = await adminModel.updateFaculty(faculty_id, name, email, department_id);
+//         if (!updatedFaculty) {
+//             return res.status(404).json({ message: 'Faculty not found.' });
+//         }
+//         res.status(200).json({ message: 'Faculty updated successfully.', faculty: updatedFaculty });
+//     } catch (error) {
+//         console.error('Error updating faculty:', error);
+//         res.status(500).json({ message: 'Internal server error updating faculty.' });
+//     }
+// };
+
+// const deleteFaculty = async (req, res) => {
+//     const { faculty_id } = req.params;
+//     try {
+//         const deletedFaculty = await adminModel.deleteFaculty(faculty_id);
+//         if (!deletedFaculty) {
+//             return res.status(404).json({ message: 'Faculty not found.' });
+//         }
+//         res.status(200).json({ message: 'Faculty deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting faculty:', error);
+//         res.status(500).json({ message: 'Internal server error deleting faculty.' });
+//     }
+// };
+
+// // ----------- STUDENTS -----------
+// const getStudents = async (req, res) => {
+//     try {
+//         const students = await adminModel.getAllStudents();
+//         res.status(200).json(students);
+//     } catch (error) {
+//         console.error('Error getting students:', error);
+//         res.status(500).json({ message: 'Internal server error getting students.' });
+//     }
+// };
+
+// const createStudent = async (req, res) => {
+//     const { roll_number, name, email, department_id, current_year, section } = req.body;
+//     if (!roll_number || !name || !department_id || !current_year || !section) {
+//         return res.status(400).json({ message: 'All required student fields are missing.' });
+//     }
+//     try {
+//         const newStudent = await adminModel.createStudent(roll_number, name, email, department_id, current_year, section);
+//         res.status(201).json({ message: 'Student created successfully.', student: newStudent });
+//     } catch (error) {
+//         console.error('Error creating student:', error);
+//         res.status(500).json({ message: 'Internal server error creating student.' });
+//     }
+// };
+
+// const updateStudent = async (req, res) => {
+//     const { student_id } = req.params;
+//     const { roll_number, name, email, department_id, current_year, section } = req.body;
+//     if (!roll_number || !name || !department_id || !current_year || !section) {
+//         return res.status(400).json({ message: 'All required student fields are missing for update.' });
+//     }
+//     try {
+//         const updatedStudent = await adminModel.updateStudent(student_id, roll_number, name, email, department_id, current_year, section);
+//         if (!updatedStudent) {
+//             return res.status(404).json({ message: 'Student not found.' });
+//         }
+//         res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent });
+//     } catch (error) {
+//         console.error('Error updating student:', error);
+//         res.status(500).json({ message: 'Internal server error updating student.' });
+//     }
+// };
+
+// const deleteStudent = async (req, res) => {
+//     const { student_id } = req.params;
+//     try {
+//         const deletedStudent = await adminModel.deleteStudent(student_id);
+//         if (!deletedStudent) {
+//             return res.status(404).json({ message: 'Student not found.' });
+//         }
+//         res.status(200).json({ message: 'Student deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting student:', error);
+//         res.status(500).json({ message: 'Internal server error deleting student.' });
+//     }
+// };
+
+// // --- SUBJECTS ---
+// const getSubjects = async (req, res) => {
+//     try {
+//         const subjects = await adminModel.getAllSubjects();
+//         res.status(200).json(subjects);
+//     } catch (error) {
+//         console.error('Error getting subjects:', error);
+//         res.status(500).json({ message: 'Internal server error getting subjects.' });
+//     }
+// };
+
+// // Modified to expect semester in req.body
+// const createSubject = async (req, res) => {
+//     const { subject_name, department_id, year, section, semester } = req.body; // Changed batch_name to semester
+//     // Validate that semester is provided and is a number
+//     if (!subject_name || !department_id || !year || !section || typeof semester !== 'number') {
+//         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required.' });
+//     }
+//     try {
+//         const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, semester); // Pass semester
+//         res.status(201).json({ message: 'Subject created successfully.', subject: newSubject });
+//     } catch (error) {
+//         console.error('Error creating subject:', error);
+//         res.status(500).json({ message: 'Internal server error creating subject.' });
+//     }
+// };
+
+// // Modified to expect semester in req.body
+// const updateSubject = async (req, res) => {
+//     const { subject_id } = req.params;
+//     const { subject_name, department_id, year, section, semester } = req.body; // Changed batch_name to semester
+//     // Validate that semester is provided and is a number
+//     if (!subject_name || !department_id || !year || !section || typeof semester !== 'number') {
+//         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required for update.' });
+//     }
+//     try {
+//         const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, semester); // Pass semester
+//         if (!updatedSubject) {
+//             return res.status(404).json({ message: 'Subject not found.' });
+//         }
+//         res.status(200).json({ message: 'Subject updated successfully.', subject: updatedSubject });
+//     } catch (error) {
+//         console.error('Error updating subject:', error);
+//         res.status(500).json({ message: 'Internal server error updating subject.' });
+//     }
+// };
+
+// const deleteSubject = async (req, res) => {
+//     const { subject_id } = req.params;
+//     try {
+//         const deletedSubject = await adminModel.deleteSubject(subject_id);
+//         if (!deletedSubject) {
+//             return res.status(404).json({ message: 'Subject not found.' });
+//         }
+//         res.status(200).json({ message: 'Subject deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting subject:', error);
+//         res.status(500).json({ message: 'Internal server error deleting subject.' });
+//     }
+// };
+
+// // ----------- APP SETTINGS (Admin View) -----------
+// const getAttendanceThreshold = async (req, res) => {
+//     try {
+//         const threshold = await adminModel.getAppSetting('attendance_threshold');
+//         // Default to 75 if setting not found or invalid
+//         res.status(200).json({ threshold: threshold ? parseInt(threshold, 10) : 75 });
+//     } catch (error) {
+//         console.error('Error getting attendance threshold setting:', error);
+//         res.status(500).json({ message: 'Internal server error getting attendance threshold.' });
+//     }
+// };
+
+// const updateAttendanceThreshold = async (req, res) => {
+//     const { threshold } = req.body;
+//     if (typeof threshold !== 'number' || threshold < 0 || threshold > 100) {
+//         return res.status(400).json({ message: 'Threshold must be a number between 0 and 100.' });
+//     }
+//     try {
+//         await adminModel.updateAppSetting('attendance_threshold', String(threshold), 'Minimum attendance percentage for defaulters');
+//         res.status(200).json({ message: 'Attendance threshold updated successfully.' });
+//     } catch (error) {
+//         console.error('Error updating attendance threshold:', error);
+//         res.status(500).json({ message: 'Internal server error updating attendance threshold.' });
+//     }
+// };
+
+// // --- NEW: DEFAULTERS LIST ---
+// const getLowAttendanceDefaulters = async (req, res) => {
+//     try {
+//         // Fetch the attendance threshold from app_settings first
+//         const thresholdSetting = await adminModel.getAppSetting('attendance_threshold');
+//         const attendanceThreshold = thresholdSetting ? parseInt(thresholdSetting, 10) : 75; // Default to 75%
+
+//         const defaulters = await adminModel.getDefaultersList(attendanceThreshold);
+//         res.status(200).json(defaulters);
+//     } catch (error) {
+//         console.error('Error getting low attendance defaulters:', error);
+//         res.status(500).json({ message: 'Internal server error fetching defaulters list.' });
+//     }
+// };
+
+// // ----------- BACKUP DATA -----------
+// const backupData = async (req, res) => {
+//     try {
+//         const tables = ['departments', 'faculties', 'students', 'subjects', 'enrollments', 'attendance_sessions', 'attendance_records', 'app_settings', 'admins'];
+//         const archive = archiver('zip');
+//         res.attachment('backup.zip');
+//         archive.pipe(res);
+
+//         for (const table of tables) {
+//             const result = await adminModel.getAllTableData(table);
+//             archive.append(JSON.stringify(result, null, 2), { name: `${table}.json` });
+//         }
+//         archive.finalize();
+//     } catch (error) {
+//         console.error('Error creating backup:', error);
+//         res.status(500).json({ message: 'Failed to create backup.' });
+//     }
+// };
+
+// // ----------- ATTENDANCE SHEET PDF -----------
+// const printAttendanceSheet = async (req, res) => {
+//     try {
+//         const doc = new PDFDocument();
+//         res.setHeader('Content-Type', 'application/pdf');
+//         res.setHeader('Content-Disposition', 'inline; filename="attendance-sheet.pdf"');
+//         doc.pipe(res);
+
+//         doc.fontSize(20).text('Master Attendance Sheet', { align: 'center' });
+//         doc.moveDown();
+
+//         const students = await adminModel.getStudentsForAttendanceSheet();
+//         students.forEach((student, idx) => {
+//             doc.fontSize(12).text(`${idx + 1}. ${student.roll_number} - ${student.name}`);
+//         });
+
+//         doc.end();
+//     } catch (error) {
+//         console.error('Error generating attendance sheet:', error);
+//         res.status(500).json({ message: 'Internal server error generating attendance sheet.' });
+//     }
+// };
+
+// module.exports = {
+//     registerAdmin,
+//     loginAdmin,
+//     getDepartments,
+//     createDepartment,
+//     updateDepartment,
+//     deleteDepartment,
+//     getFaculties,
+//     createFaculty,
+//     updateFaculty,
+//     deleteFaculty,
+//     getStudents,
+//     createStudent,
+//     updateStudent,
+//     deleteStudent,
+//     getSubjects,
+//     createSubject,
+//     updateSubject,
+//     deleteSubject,
+//     getDashboardStats,
+//     getAttendanceThreshold,
+//     updateAttendanceThreshold,
+//     getLowAttendanceDefaulters, // EXPORT THE NEW DEFAULTERS CONTROLLER
+//     backupData,
+//     printAttendanceSheet
+// };
+
 // backend/controllers/adminController.js
+
+// const adminModel = require('../models/adminModel');
+// const { comparePassword, hashPassword } = require('../utils/passwordHasher');
+// const { generateToken } = require('../config/jwt');
+// const archiver = require('archiver');
+// const PDFDocument = require('pdfkit');
+
+// // --- ADMIN AUTH ---
+// const registerAdmin = async (req, res) => {
+//     const { name, email, password } = req.body;
+//     if (!name || !email || !password) {
+//         return res.status(400).json({ message: 'Name, email, and password are required.' });
+//     }
+//     try {
+//         const existingAdmin = await adminModel.findAdminByEmail(email);
+//         if (existingAdmin) {
+//             return res.status(409).json({ message: 'Admin with this email already exists.' });
+//         }
+//         const hashedPassword = await hashPassword(password);
+//         const newAdmin = await adminModel.createAdmin(name, email, hashedPassword);
+//         const token = generateToken({ id: newAdmin.admin_id, email: newAdmin.email, isAdmin: true });
+//         res.status(201).json({
+//             message: 'Admin registered successfully!',
+//             admin: {
+//                 id: newAdmin.admin_id,
+//                 name: newAdmin.name,
+//                 email: newAdmin.email
+//             },
+//             token
+//         });
+//     } catch (error) {
+//         console.error('Admin registration error:', error);
+//         res.status(500).json({ message: 'Internal server error during registration.' });
+//     }
+// };
+
+// const loginAdmin = async (req, res) => {
+//     const { email, password } = req.body;
+//     if (!email || !password) {
+//         return res.status(400).json({ message: 'Email and password are required.' });
+//     }
+//     try {
+//         const admin = await adminModel.findAdminByEmail(email);
+//         if (!admin) {
+//             return res.status(401).json({ message: 'Invalid credentials.' });
+//         }
+//         const isMatch = await comparePassword(password, admin.password_hash);
+//         if (!isMatch) {
+//             return res.status(401).json({ message: 'Invalid credentials.' });
+//         }
+//         const token = generateToken({ id: admin.admin_id, email: admin.email, isAdmin: true });
+//         res.status(200).json({
+//             message: 'Logged in successfully!',
+//             admin: {
+//                 id: admin.admin_id,
+//                 name: admin.name,
+//                 email: admin.email
+//             },
+//             token
+//         });
+//     } catch (error) {
+//         console.error('Admin login error:', error);
+//         res.status(500).json({ message: 'Internal server error during login.' });
+//     }
+// };
+
+// const getDepartments = async (req, res) => {
+//     try {
+//         const departments = await adminModel.getAllDepartments();
+//         res.status(200).json(departments);
+//     } catch (error) {
+//         console.error('Error getting departments:', error);
+//         res.status(500).json({ message: 'Internal server error getting departments.' });
+//     }
+// };
+
+// const createDepartment = async (req, res) => {
+//     const { name } = req.body;
+//     if (!name) {
+//         return res.status(400).json({ message: 'Department name is required.' });
+//     }
+//     try {
+//         const newDepartment = await adminModel.createDepartment(name);
+//         res.status(201).json({ message: 'Department created successfully.', department: newDepartment });
+//     } catch (error) {
+//         console.error('Error creating department:', error);
+//         res.status(500).json({ message: 'Internal server error creating department.' });
+//     }
+// };
+
+// const updateDepartment = async (req, res) => {
+//     const { department_id } = req.params;
+//     const { name } = req.body;
+//     if (!name) {
+//         return res.status(400).json({ message: 'Department name is required.' });
+//     }
+//     try {
+//         const updatedDepartment = await adminModel.updateDepartment(department_id, name);
+//         if (!updatedDepartment) {
+//             return res.status(404).json({ message: 'Department not found.' });
+//         }
+//         res.status(200).json({ message: 'Department updated successfully.', department: updatedDepartment });
+//     } catch (error) {
+//         console.error('Error updating department:', error);
+//         res.status(500).json({ message: 'Internal server error updating department.' });
+//     }
+// };
+
+// const deleteDepartment = async (req, res) => {
+//     const { department_id } = req.params;
+//     try {
+//         const deletedDepartment = await adminModel.deleteDepartment(department_id);
+//         if (!deletedDepartment) {
+//             return res.status(404).json({ message: 'Department not found.' });
+//         }
+//         res.status(200).json({ message: 'Department deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting department:', error);
+//         res.status(500).json({ message: 'Internal server error deleting department.' });
+//     }
+// };
+
+// // MODIFIED FOR PAGINATION
+// const getFaculties = async (req, res) => {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { faculty, totalItems, totalPages, currentPage } = await adminModel.getAllFaculties(page, limit);
+//         res.status(200).json({ faculty, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting faculties with pagination:', error);
+//         res.status(500).json({ message: 'Internal server error getting faculties.' });
+//     }
+// };
+
+// const createFaculty = async (req, res) => {
+//     const { name, email, password, department_id } = req.body;
+//     if (!name || !email || !password || !department_id) {
+//         return res.status(400).json({ message: 'All faculty fields are required.' });
+//     }
+//     try {
+//         const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id);
+//         res.status(201).json({ message: 'Faculty created successfully.', faculty: newFaculty });
+//     } catch (error) {
+//         console.error('Error creating faculty:', error);
+//         res.status(500).json({ message: 'Internal server error creating faculty.' });
+//     }
+// };
+
+// const updateFaculty = async (req, res) => {
+//     const { faculty_id } = req.params;
+//     const { name, email, department_id } = req.body;
+//     if (!name || !email || !department_id) {
+//         return res.status(400).json({ message: 'All faculty fields are required for update.' });
+//     }
+//     try {
+//         const updatedFaculty = await adminModel.updateFaculty(faculty_id, name, email, department_id);
+//         if (!updatedFaculty) {
+//             return res.status(404).json({ message: 'Faculty not found.' });
+//         }
+//         res.status(200).json({ message: 'Faculty updated successfully.', faculty: updatedFaculty });
+//     } catch (error) {
+//         console.error('Error updating faculty:', error);
+//         res.status(500).json({ message: 'Internal server error updating faculty.' });
+//     }
+// };
+
+// const deleteFaculty = async (req, res) => {
+//     const { faculty_id } = req.params;
+//     try {
+//         const deletedFaculty = await adminModel.deleteFaculty(faculty_id);
+//         if (!deletedFaculty) {
+//             return res.status(404).json({ message: 'Faculty not found.' });
+//         }
+//         res.status(200).json({ message: 'Faculty deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting faculty:', error);
+//         res.status(500).json({ message: 'Internal server error deleting faculty.' });
+//     }
+// };
+
+// // MODIFIED FOR PAGINATION
+// const getStudents = async (req, res) => {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { students, totalItems, totalPages, currentPage } = await adminModel.getAllStudents(page, limit);
+//         res.status(200).json({ students, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting students with pagination:', error);
+//         res.status(500).json({ message: 'Internal server error getting students.' });
+//     }
+// };
+
+// const createStudent = async (req, res) => {
+//     const { roll_number, name, email, department_id, current_year, section } = req.body;
+//     if (!roll_number || !name || !email || !department_id || !current_year || !section) {
+//         return res.status(400).json({ message: 'All required student fields are missing.' });
+//     }
+//     try {
+//         const newStudent = await adminModel.createStudent(roll_number, name, email, department_id, current_year, section);
+//         res.status(201).json({ message: 'Student created successfully.', student: newStudent });
+//     } catch (error) {
+//         console.error('Error creating student:', error);
+//         res.status(500).json({ message: 'Internal server error creating student.' });
+//     }
+// };
+
+// const updateStudent = async (req, res) => {
+//     const { student_id } = req.params;
+//     const { roll_number, name, email, department_id, current_year, section } = req.body;
+//     if (!roll_number || !name || !email || !department_id || !current_year || !section) {
+//         return res.status(400).json({ message: 'All required student fields are missing for update.' });
+//     }
+//     try {
+//         const updatedStudent = await adminModel.updateStudent(student_id, roll_number, name, email, department_id, current_year, section);
+//         if (!updatedStudent) {
+//             return res.status(404).json({ message: 'Student not found.' });
+//         }
+//         res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent });
+//     } catch (error) {
+//         console.error('Error updating student:', error);
+//         res.status(500).json({ message: 'Internal server error updating student.' });
+//     }
+// };
+
+// const deleteStudent = async (req, res) => {
+//     const { student_id } = req.params;
+//     try {
+//         const deletedStudent = await adminModel.deleteStudent(student_id);
+//         if (!deletedStudent) {
+//             return res.status(404).json({ message: 'Student not found.' });
+//         }
+//         res.status(200).json({ message: 'Student deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting student:', error);
+//         res.status(500).json({ message: 'Internal server error deleting student.' });
+//     }
+// };
+
+// // MODIFIED FOR PAGINATION (using semester)
+// const getSubjects = async (req, res) => {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { subjects, totalItems, totalPages, currentPage } = await adminModel.getAllSubjects(page, limit);
+//         res.status(200).json({ subjects, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting subjects with pagination:', error);
+//         res.status(500).json({ message: 'Internal server error getting subjects.' });
+//     }
+// };
+
+// const createSubject = async (req, res) => {
+//     const { subject_name, department_id, year, section, semester } = req.body;
+//     if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
+//         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required.' });
+//     }
+//     try {
+//         const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, semester);
+//         res.status(201).json({ message: 'Subject created successfully.', subject: newSubject });
+//     } catch (error) {
+//         console.error('Error creating subject:', error);
+//         res.status(500).json({ message: 'Internal server error creating subject.' });
+//     }
+// };
+
+// const updateSubject = async (req, res) => {
+//     const { subject_id } = req.params;
+//     const { subject_name, department_id, year, section, semester } = req.body;
+//     if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
+//         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required for update.' });
+//     }
+//     try {
+//         const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, semester);
+//         if (!updatedSubject) {
+//             return res.status(404).json({ message: 'Subject not found.' });
+//         }
+//         res.status(200).json({ message: 'Subject updated successfully.', subject: updatedSubject });
+//     } catch (error) {
+//         console.error('Error updating subject:', error);
+//         res.status(500).json({ message: 'Internal server error updating subject.' });
+//     }
+// };
+
+// const deleteSubject = async (req, res) => {
+//     const { subject_id } = req.params;
+//     try {
+//         const deletedSubject = await adminModel.deleteSubject(subject_id);
+//         if (!deletedSubject) {
+//             return res.status(404).json({ message: 'Subject not found.' });
+//         }
+//         res.status(200).json({ message: 'Subject deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting subject:', error);
+//         res.status(500).json({ message: 'Internal server error deleting subject.' });
+//     }
+// };
+
+// // --- APP SETTINGS (Admin View) ---
+// const getAttendanceThreshold = async (req, res) => {
+//     try {
+//         const threshold = await adminModel.getAppSetting('attendance_threshold');
+//         res.status(200).json({ threshold: threshold ? parseInt(threshold) : 75 });
+//     } catch (error) {
+//         console.error('Error getting settings:', error);
+//         res.status(500).json({ message: 'Internal server error getting settings.' });
+//     }
+// };
+
+// const updateAttendanceThreshold = async (req, res) => {
+//     const { threshold } = req.body;
+//     if (typeof threshold !== 'number' || threshold < 0 || threshold > 100) {
+//         return res.status(400).json({ message: 'Threshold must be a number between 0 and 100.' });
+//     }
+//     try {
+//         await adminModel.updateAppSetting('attendance_threshold', String(threshold), 'Minimum attendance percentage for defaulters');
+//         res.status(200).json({ message: 'Attendance threshold updated successfully.' });
+//     } catch (error) {
+//         console.error('Error updating threshold:', error);
+//         res.status(500).json({ message: 'Internal server error updating threshold.' });
+//     }
+// };
+
+// // --- BACKUP DATA ---
+// const backupData = async (req, res) => {
+//     try {
+//         const tables = ['departments', 'faculties', 'students', 'subjects', 'enrollments', 'attendance_sessions', 'attendance_records', 'app_settings', 'admins'];
+//         const archive = archiver('zip');
+//         res.attachment('backup.zip');
+//         archive.pipe(res);
+
+//         for (const table of tables) {
+//             const result = await adminModel.getAllTableData(table);
+//             archive.append(JSON.stringify(result, null, 2), { name: `${table}.json` });
+//         }
+//         archive.finalize();
+//     } catch (error) {
+//         console.error('Error creating backup:', error);
+//         res.status(500).json({ message: 'Failed to create backup.' });
+//     }
+// };
+
+// // --- ATTENDANCE SHEET PDF ---
+// const printAttendanceSheet = async (req, res) => {
+//     try {
+//         const doc = new PDFDocument();
+//         res.setHeader('Content-Type', 'application/pdf');
+//         res.setHeader('Content-Disposition', 'inline; filename="attendance-sheet.pdf"');
+//         doc.pipe(res);
+
+//         doc.fontSize(20).text('Master Attendance Sheet', { align: 'center' });
+//         doc.moveDown();
+
+//         const students = await adminModel.getStudentsForAttendanceSheet();
+//         students.forEach((student, idx) => {
+//             doc.fontSize(12).text(`${idx + 1}. ${student.roll_number} - ${student.name}`);
+//         });
+
+//         doc.end();
+//     } catch (error) {
+//         console.error('Error generating attendance sheet:', error);
+//         res.status(500).json({ message: 'Internal server error generating attendance sheet.' });
+//     }
+// };
+
+// const getDashboardStats = async (req, res) => {
+//     try {
+//         const subjectsCount = await adminModel.countEntities('subjects');
+//         const studentsCount = await adminModel.countEntities('students');
+//         const facultyCount = await adminModel.countEntities('faculties');
+//         const departmentsCount = await adminModel.countEntities('departments');
+//         const defaultersCount = await adminModel.countDefaulters();
+
+//         res.status(200).json({
+//             subjects: subjectsCount,
+//             students: studentsCount,
+//             faculties: facultyCount,
+//             departments: departmentsCount,
+//             defaulters: defaultersCount,
+//         });
+//     } catch (error) {
+//         console.error('Error getting dashboard stats:', error);
+//         res.status(500).json({ message: 'Internal server error getting dashboard stats.' });
+//     }
+// };
+
+// const getDefaultersList = async (req, res) => {
+//     const threshold = parseInt(req.query.threshold) || 75;
+//     const page = parseInt(req.query.page) || 1; // Added for pagination
+//     const limit = parseInt(req.query.limit) || 10; // Added for pagination
+//     try {
+//         const { defaulters, totalItems, totalPages, currentPage } = await adminModel.getDefaultersList(threshold, page, limit); // Pass pagination params
+//         res.status(200).json({ defaulters, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting defaulters list:', error);
+//         res.status(500).json({ message: 'Internal server error getting defaulters list.' });
+//     }
+// };
+
+// module.exports = {
+//     registerAdmin,
+//     loginAdmin,
+//     getDepartments,
+//     createDepartment,
+//     updateDepartment,
+//     deleteDepartment,
+//     getFaculties,
+//     createFaculty,
+//     updateFaculty,
+//     deleteFaculty,
+//     getStudents,
+//     createStudent,
+//     updateStudent,
+//     deleteStudent,
+//     getSubjects, // This now returns paginated data
+//     createSubject,
+//     updateSubject,
+//     deleteSubject,
+//     getAttendanceThreshold,
+//     updateAttendanceThreshold,
+//     backupData,
+//     printAttendanceSheet,
+//     getDashboardStats,
+//     getDefaultersList
+// };
+
+// const adminModel = require('../models/adminModel');
+// const { comparePassword, hashPassword } = require('../utils/passwordHasher');
+// const { generateToken } = require('../config/jwt');
+// const archiver = require('archiver');
+// const PDFDocument = require('pdfkit');
+
+// const registerAdmin = async (req, res) => {
+//     const { name, email, password } = req.body;
+//     if (!name || !email || !password) {
+//         return res.status(400).json({ message: 'Name, email, and password are required.' });
+//     }
+//     try {
+//         const existingAdmin = await adminModel.findAdminByEmail(email);
+//         if (existingAdmin) {
+//             return res.status(409).json({ message: 'Admin with this email already exists.' });
+//         }
+//         const hashedPassword = await hashPassword(password);
+//         const newAdmin = await adminModel.createAdmin(name, email, hashedPassword);
+//         const token = generateToken({ id: newAdmin.admin_id, email: newAdmin.email, isAdmin: true });
+//         res.status(201).json({
+//             message: 'Admin registered successfully!',
+//             admin: {
+//                 id: newAdmin.admin_id,
+//                 name: newAdmin.name,
+//                 email: newAdmin.email
+//             },
+//             token
+//         });
+//     } catch (error) {
+//         console.error('Admin registration error:', error);
+//         res.status(500).json({ message: 'Internal server error during registration.' });
+//     }
+// };
+
+// const loginAdmin = async (req, res) => {
+//     const { email, password } = req.body;
+//     if (!email || !password) {
+//         return res.status(400).json({ message: 'Email and password are required.' });
+//     }
+//     try {
+//         const admin = await adminModel.findAdminByEmail(email);
+//         if (!admin) {
+//             return res.status(401).json({ message: 'Invalid credentials.' });
+//         }
+//         const isMatch = await comparePassword(password, admin.password_hash);
+//         if (!isMatch) {
+//             return res.status(401).json({ message: 'Invalid credentials.' });
+//         }
+//         const token = generateToken({ id: admin.admin_id, email: admin.email, isAdmin: true });
+//         res.status(200).json({
+//             message: 'Logged in successfully!',
+//             admin: {
+//                 id: admin.admin_id,
+//                 name: admin.name,
+//                 email: admin.email
+//             },
+//             token
+//         });
+//     } catch (error) {
+//         console.error('Admin login error:', error);
+//         res.status(500).json({ message: 'Internal server error during login.' });
+//     }
+// };
+
+// const getDepartments = async (req, res) => {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { departments, totalItems, totalPages, currentPage } = await adminModel.getAllDepartments(page, limit);
+//         res.status(200).json({ departments, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting departments:', error);
+//         res.status(500).json({ message: 'Internal server error getting departments.' });
+//     }
+// };
+
+// const createDepartment = async (req, res) => {
+//     const { name } = req.body;
+//     if (!name) {
+//         return res.status(400).json({ message: 'Department name is required.' });
+//     }
+//     try {
+//         const newDepartment = await adminModel.createDepartment(name);
+//         res.status(201).json({ message: 'Department created successfully.', department: newDepartment });
+//     } catch (error) {
+//         console.error('Error creating department:', error);
+//         res.status(500).json({ message: 'Internal server error creating department.' });
+//     }
+// };
+
+// const updateDepartment = async (req, res) => {
+//     const { department_id } = req.params;
+//     const { name } = req.body;
+//     if (!name) {
+//         return res.status(400).json({ message: 'Department name is required.' });
+//     }
+//     try {
+//         const updatedDepartment = await adminModel.updateDepartment(department_id, name);
+//         if (!updatedDepartment) {
+//             return res.status(404).json({ message: 'Department not found.' });
+//         }
+//         res.status(200).json({ message: 'Department updated successfully.', department: updatedDepartment });
+//     } catch (error) {
+//         console.error('Error updating department:', error);
+//         res.status(500).json({ message: 'Internal server error updating department.' });
+//     }
+// };
+
+// const deleteDepartment = async (req, res) => {
+//     const { department_id } = req.params;
+//     try {
+//         const deletedDepartment = await adminModel.deleteDepartment(department_id);
+//         if (!deletedDepartment) {
+//             return res.status(404).json({ message: 'Department not found.' });
+//         }
+//         res.status(200).json({ message: 'Department deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting department:', error);
+//         res.status(500).json({ message: 'Internal server error deleting department.' });
+//     }
+// };
+
+// const getFaculties = async (req, res) => {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { faculty, totalItems, totalPages, currentPage } = await adminModel.getAllFaculties(page, limit);
+//         res.status(200).json({ faculty, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting faculties with pagination:', error);
+//         res.status(500).json({ message: 'Internal server error getting faculties.' });
+//     }
+// };
+
+// const createFaculty = async (req, res) => {
+//     const { name, email, password, department_id } = req.body;
+//     if (!name || !email || !password || !department_id) {
+//         return res.status(400).json({ message: 'All faculty fields are required.' });
+//     }
+//     try {
+//         const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id);
+//         res.status(201).json({ message: 'Faculty created successfully.', faculty: newFaculty });
+//     } catch (error) {
+//         console.error('Error creating faculty:', error);
+//         res.status(500).json({ message: 'Internal server error creating faculty.' });
+//     }
+// };
+
+// const updateFaculty = async (req, res) => {
+//     const { faculty_id } = req.params;
+//     const { name, email, department_id } = req.body;
+//     if (!name || !email || !department_id) {
+//         return res.status(400).json({ message: 'All faculty fields are required for update.' });
+//     }
+//     try {
+//         const updatedFaculty = await adminModel.updateFaculty(faculty_id, name, email, department_id);
+//         if (!updatedFaculty) {
+//             return res.status(404).json({ message: 'Faculty not found.' });
+//         }
+//         res.status(200).json({ message: 'Faculty updated successfully.', faculty: updatedFaculty });
+//     } catch (error) {
+//         console.error('Error updating faculty:', error);
+//         res.status(500).json({ message: 'Internal server error updating faculty.' });
+//     }
+// };
+
+// const deleteFaculty = async (req, res) => {
+//     const { faculty_id } = req.params;
+//     try {
+//         const deletedFaculty = await adminModel.deleteFaculty(faculty_id);
+//         if (!deletedFaculty) {
+//             return res.status(404).json({ message: 'Faculty not found.' });
+//         }
+//         res.status(200).json({ message: 'Faculty deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting faculty:', error);
+//         res.status(500).json({ message: 'Internal server error deleting faculty.' });
+//     }
+// };
+
+// const getStudents = async (req, res) => {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { students, totalItems, totalPages, currentPage } = await adminModel.getAllStudents(page, limit);
+//         res.status(200).json({ students, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting students with pagination:', error);
+//         res.status(500).json({ message: 'Internal server error getting students.' });
+//     }
+// };
+
+// const createStudent = async (req, res) => {
+//     const { roll_number, name, email, department_id, current_year, section } = req.body;
+//     if (!roll_number || !name || !email || !department_id || !current_year || !section) {
+//         return res.status(400).json({ message: 'All required student fields are missing.' });
+//     }
+//     try {
+//         const newStudent = await adminModel.createStudent(roll_number, name, email, department_id, current_year, section);
+//         res.status(201).json({ message: 'Student created successfully.', student: newStudent });
+//     } catch (error) {
+//         console.error('Error creating student:', error);
+//         res.status(500).json({ message: 'Internal server error creating student.' });
+//     }
+// };
+
+// const updateStudent = async (req, res) => {
+//     const { student_id } = req.params;
+//     const { roll_number, name, email, department_id, current_year, section } = req.body;
+//     if (!roll_number || !name || !email || !department_id || !current_year || !section) {
+//         return res.status(400).json({ message: 'All required student fields are missing for update.' });
+//     }
+//     try {
+//         const updatedStudent = await adminModel.updateStudent(student_id, roll_number, name, email, department_id, current_year, section);
+//         if (!updatedStudent) {
+//             return res.status(404).json({ message: 'Student not found.' });
+//         }
+//         res.status(200).json({ message: 'Student updated successfully.', student: updatedStudent });
+//     } catch (error) {
+//         console.error('Error updating student:', error);
+//         res.status(500).json({ message: 'Internal server error updating student.' });
+//     }
+// };
+
+// const deleteStudent = async (req, res) => {
+//     const { student_id } = req.params;
+//     try {
+//         const deletedStudent = await adminModel.deleteStudent(student_id);
+//         if (!deletedStudent) {
+//             return res.status(404).json({ message: 'Student not found.' });
+//         }
+//         res.status(200).json({ message: 'Student deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting student:', error);
+//         res.status(500).json({ message: 'Internal server error deleting student.' });
+//     }
+// };
+
+// const getSubjects = async (req, res) => {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { subjects, totalItems, totalPages, currentPage } = await adminModel.getAllSubjects(page, limit);
+//         res.status(200).json({ subjects, totalItems, totalPages, currentPage });
+//     }
+//     // Error handling
+//     catch (error) {
+//         console.error('Error getting subjects with pagination:', error);
+//         res.status(500).json({ message: 'Internal server error getting subjects.' });
+//     }
+// };
+
+// const createSubject = async (req, res) => {
+//     const { subject_name, department_id, year, section, semester } = req.body;
+//     if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
+//         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required.' });
+//     }
+//     try {
+//         const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, semester);
+//         res.status(201).json({ message: 'Subject created successfully.', subject: newSubject });
+//     } catch (error) {
+//         console.error('Error creating subject:', error);
+//         res.status(500).json({ message: 'Internal server error creating subject.' });
+//     }
+// };
+
+// const updateSubject = async (req, res) => {
+//     const { subject_id } = req.params;
+//     const { subject_name, department_id, year, section, semester } = req.body;
+//     if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
+//         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required for update.' });
+//     }
+//     try {
+//         const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, semester);
+//         if (!updatedSubject) {
+//             return res.status(404).json({ message: 'Subject not found.' });
+//         }
+//         res.status(200).json({ message: 'Subject updated successfully.', subject: updatedSubject });
+//     } catch (error) {
+//         console.error('Error updating subject:', error);
+//         res.status(500).json({ message: 'Internal server error updating subject.' });
+//     }
+// };
+
+// const deleteSubject = async (req, res) => {
+//     const { subject_id } = req.params;
+//     try {
+//         const deletedSubject = await adminModel.deleteSubject(subject_id);
+//         if (!deletedSubject) {
+//             return res.status(404).json({ message: 'Subject not found.' });
+//         }
+//         res.status(200).json({ message: 'Subject deleted successfully.' });
+//     } catch (error) {
+//         console.error('Error deleting subject:', error);
+//         res.status(500).json({ message: 'Internal server error deleting subject.' });
+//     }
+// };
+
+// const getAttendanceThreshold = async (req, res) => {
+//     try {
+//         const threshold = await adminModel.getAppSetting('attendance_threshold');
+//         res.status(200).json({ threshold: threshold ? parseInt(threshold) : 75 });
+//     } catch (error) {
+//         console.error('Error getting settings:', error);
+//         res.status(500).json({ message: 'Internal server error getting settings.' });
+//     }
+// };
+
+// const updateAttendanceThreshold = async (req, res) => {
+//     const { threshold } = req.body;
+//     if (typeof threshold !== 'number' || threshold < 0 || threshold > 100) {
+//         return res.status(400).json({ message: 'Threshold must be a number between 0 and 100.' });
+//     }
+//     try {
+//         await adminModel.updateAppSetting('attendance_threshold', String(threshold), 'Minimum attendance percentage for defaulters');
+//         res.status(200).json({ message: 'Attendance threshold updated successfully.' });
+//     } catch (error) {
+//         console.error('Error updating threshold:', error);
+//         res.status(500).json({ message: 'Internal server error updating threshold.' });
+//     }
+// };
+
+// const backupData = async (req, res) => {
+//     try {
+//         const tables = ['departments', 'faculties', 'students', 'subjects', 'enrollments', 'attendance_sessions', 'attendance_records', 'app_settings', 'admins'];
+//         const archive = archiver('zip');
+//         res.attachment('backup.zip');
+//         archive.pipe(res);
+
+//         for (const table of tables) {
+//             const result = await adminModel.getAllTableData(table);
+//             archive.append(JSON.stringify(result, null, 2), { name: `${table}.json` });
+//         }
+//         archive.finalize();
+//     } catch (error) {
+//         console.error('Error creating backup:', error);
+//         res.status(500).json({ message: 'Failed to create backup.' });
+//     }
+// };
+
+// const printAttendanceSheet = async (req, res) => {
+//     try {
+//         const doc = new PDFDocument();
+//         res.setHeader('Content-Type', 'application/pdf');
+//         res.setHeader('Content-Disposition', 'inline; filename="attendance-sheet.pdf"');
+//         doc.pipe(res);
+
+//         doc.fontSize(20).text('Master Attendance Sheet', { align: 'center' });
+//         doc.moveDown();
+
+//         const students = await adminModel.getStudentsForAttendanceSheet();
+//         students.forEach((student, idx) => {
+//             doc.fontSize(12).text(`${idx + 1}. ${student.roll_number} - ${student.name}`);
+//         });
+
+//         doc.end();
+//     } catch (error) {
+//         console.error('Error generating attendance sheet:', error);
+//         res.status(500).json({ message: 'Internal server error generating attendance sheet.' });
+//     }
+// };
+
+// const getDashboardStats = async (req, res) => {
+//     try {
+//         const subjectsCount = await adminModel.countEntities('subjects');
+//         const studentsCount = await adminModel.countEntities('students');
+//         const facultyCount = await adminModel.countEntities('faculties');
+//         const departmentsCount = await adminModel.countEntities('departments');
+//         const defaultersCount = await adminModel.countDefaulters();
+
+//         res.status(200).json({
+//             subjects: subjectsCount,
+//             students: studentsCount,
+//             faculties: facultyCount,
+//             departments: departmentsCount,
+//             defaulters: defaultersCount,
+//         });
+//     } catch (error) {
+//         console.error('Error getting dashboard stats:', error);
+//         res.status(500).json({ message: 'Internal server error getting dashboard stats.' });
+//     }
+// };
+
+// const getDefaultersList = async (req, res) => {
+//     const threshold = parseInt(req.query.threshold) || 75;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     try {
+//         const { defaulters, totalItems, totalPages, currentPage } = await adminModel.getDefaultersList(threshold, page, limit);
+//         res.status(200).json({ defaulters, totalItems, totalPages, currentPage });
+//     } catch (error) {
+//         console.error('Error getting defaulters list:', error);
+//         res.status(500).json({ message: 'Internal server error getting defaulters list.' });
+//     }
+// };
+
+// module.exports = {
+//     registerAdmin,
+//     loginAdmin,
+//     getDepartments,
+//     createDepartment,
+//     updateDepartment,
+//     deleteDepartment,
+//     getFaculties,
+//     createFaculty,
+//     updateFaculty,
+//     deleteFaculty,
+//     getStudents,
+//     createStudent,
+//     updateStudent,
+//     deleteStudent,
+//     getSubjects, // This now returns paginated data
+//     createSubject,
+//     updateSubject,
+//     deleteSubject,
+//     getAttendanceThreshold,
+//     updateAttendanceThreshold,
+//     backupData,
+//     printAttendanceSheet,
+//     getDashboardStats,
+//     getDefaultersList
+// };
 
 const adminModel = require('../models/adminModel');
 const { comparePassword, hashPassword } = require('../utils/passwordHasher');
-const { generateToken } = require('../config/jwt'); // Ensure this is correctly used
+const { generateToken } = require('../config/jwt');
 const archiver = require('archiver');
 const PDFDocument = require('pdfkit');
-const pool = require('../config/db'); // Used for dashboard stats only
 
-
-const getDashboardStats = async (req, res) => {
-    try {
-        const [departments, subjects, students, faculties] = await Promise.all([
-            adminModel.countEntities('departments'),
-            adminModel.countEntities('subjects'),
-            adminModel.countEntities('students'),
-            adminModel.countEntities('faculties')
-        ]);
-        res.json({
-            departments: departments,
-            subjects: subjects,
-            students: students,
-            faculties: faculties
-        });
-    } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
-        res.status(500).json({ message: 'Failed to fetch dashboard stats.' });
-    }
-};
-
-// --- ADMIN AUTH ---
 const registerAdmin = async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -58,9 +1317,7 @@ const registerAdmin = async (req, res) => {
 };
 
 const loginAdmin = async (req, res) => {
-    console.log('Login request body:', req.body); // Debugging log
     const { email, password } = req.body;
-    console.log('Login attempt with email:', email); // Debugging log
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
     }
@@ -85,15 +1342,16 @@ const loginAdmin = async (req, res) => {
         });
     } catch (error) {
         console.error('Admin login error:', error);
-        res.status(500).json({ message: error.message || 'Internal server error during admin login.' });
+        res.status(500).json({ message: 'Internal server error during login.' });
     }
 };
 
-// --- DEPARTMENTS ---
 const getDepartments = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const departments = await adminModel.getAllDepartments();
-        res.status(200).json(departments);
+        const { departments, totalItems, totalPages, currentPage } = await adminModel.getAllDepartments(page, limit);
+        res.status(200).json({ departments, totalItems, totalPages, currentPage });
     } catch (error) {
         console.error('Error getting departments:', error);
         res.status(500).json({ message: 'Internal server error getting departments.' });
@@ -146,16 +1404,31 @@ const deleteDepartment = async (req, res) => {
     }
 };
 
-// --- FACULTY ---
 const getFaculties = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const faculties = await adminModel.getAllFaculties();
-        res.status(200).json(faculties);
+        const { faculty, totalItems, totalPages, currentPage } = await adminModel.getAllFaculties(page, limit);
+        res.status(200).json({ faculty, totalItems, totalPages, currentPage });
     } catch (error) {
-        console.error('Error getting faculties:', error);
+        console.error('Error getting faculties with pagination:', error);
         res.status(500).json({ message: 'Internal server error getting faculties.' });
     }
 };
+
+// const createFaculty = async (req, res) => {
+//     const { name, email, password, department_id } = req.body;
+//     if (!name || !email || !password || !department_id) {
+//         return res.status(400).json({ message: 'All faculty fields are required.' });
+//     }
+//     try {
+//         const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id);
+//         res.status(201).json({ message: 'Faculty created successfully.', faculty: newFaculty });
+//     } catch (error) {
+//         console.error('Error creating faculty:', error);
+//         res.status(500).json({ message: 'Internal server error creating faculty.' });
+//     }
+// };
 
 const createFaculty = async (req, res) => {
     const { name, email, password, department_id } = req.body;
@@ -166,6 +1439,10 @@ const createFaculty = async (req, res) => {
         const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id);
         res.status(201).json({ message: 'Faculty created successfully.', faculty: newFaculty });
     } catch (error) {
+        // Handle duplicate email error
+        if (error.code === '23505') {
+            return res.status(409).json({ message: 'Faculty with this email already exists.' });
+        }
         console.error('Error creating faculty:', error);
         res.status(500).json({ message: 'Internal server error creating faculty.' });
     }
@@ -203,20 +1480,21 @@ const deleteFaculty = async (req, res) => {
     }
 };
 
-// ----------- STUDENTS -----------
 const getStudents = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const students = await adminModel.getAllStudents();
-        res.status(200).json(students);
+        const { students, totalItems, totalPages, currentPage } = await adminModel.getAllStudents(page, limit);
+        res.status(200).json({ students, totalItems, totalPages, currentPage });
     } catch (error) {
-        console.error('Error getting students:', error);
+        console.error('Error getting students with pagination:', error);
         res.status(500).json({ message: 'Internal server error getting students.' });
     }
 };
 
 const createStudent = async (req, res) => {
     const { roll_number, name, email, department_id, current_year, section } = req.body;
-    if (!roll_number || !name || !department_id || !current_year || !section) {
+    if (!roll_number || !name || !email || !department_id || !current_year || !section) {
         return res.status(400).json({ message: 'All required student fields are missing.' });
     }
     try {
@@ -231,7 +1509,7 @@ const createStudent = async (req, res) => {
 const updateStudent = async (req, res) => {
     const { student_id } = req.params;
     const { roll_number, name, email, department_id, current_year, section } = req.body;
-    if (!roll_number || !name || !department_id || !current_year || !section) {
+    if (!roll_number || !name || !email || !department_id || !current_year || !section) {
         return res.status(400).json({ message: 'All required student fields are missing for update.' });
     }
     try {
@@ -260,26 +1538,26 @@ const deleteStudent = async (req, res) => {
     }
 };
 
-// --- SUBJECTS ---
 const getSubjects = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const subjects = await adminModel.getAllSubjects();
-        res.status(200).json(subjects);
-    } catch (error) {
-        console.error('Error getting subjects:', error);
+        const { subjects, totalItems, totalPages, currentPage } = await adminModel.getAllSubjects(page, limit);
+        res.status(200).json({ subjects, totalItems, totalPages, currentPage });
+    }
+    catch (error) {
+        console.error('Error getting subjects with pagination:', error);
         res.status(500).json({ message: 'Internal server error getting subjects.' });
     }
 };
 
-// Modified to expect semester in req.body
 const createSubject = async (req, res) => {
-    const { subject_name, department_id, year, section, semester } = req.body; // Changed batch_name to semester
-    // Validate that semester is provided and is a number
-    if (!subject_name || !department_id || !year || !section || typeof semester !== 'number') {
+    const { subject_name, department_id, year, section, semester } = req.body;
+    if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required.' });
     }
     try {
-        const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, semester); // Pass semester
+        const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, semester);
         res.status(201).json({ message: 'Subject created successfully.', subject: newSubject });
     } catch (error) {
         console.error('Error creating subject:', error);
@@ -287,16 +1565,14 @@ const createSubject = async (req, res) => {
     }
 };
 
-// Modified to expect semester in req.body
 const updateSubject = async (req, res) => {
     const { subject_id } = req.params;
-    const { subject_name, department_id, year, section, semester } = req.body; // Changed batch_name to semester
-    // Validate that semester is provided and is a number
-    if (!subject_name || !department_id || !year || !section || typeof semester !== 'number') {
+    const { subject_name, department_id, year, section, semester } = req.body;
+    if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
         return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required for update.' });
     }
     try {
-        const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, semester); // Pass semester
+        const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, semester);
         if (!updatedSubject) {
             return res.status(404).json({ message: 'Subject not found.' });
         }
@@ -321,15 +1597,13 @@ const deleteSubject = async (req, res) => {
     }
 };
 
-// ----------- APP SETTINGS (Admin View) -----------
 const getAttendanceThreshold = async (req, res) => {
     try {
         const threshold = await adminModel.getAppSetting('attendance_threshold');
-        // Default to 75 if setting not found or invalid
-        res.status(200).json({ threshold: threshold ? parseInt(threshold, 10) : 75 });
+        res.status(200).json({ threshold: threshold ? parseInt(threshold) : 75 });
     } catch (error) {
-        console.error('Error getting attendance threshold setting:', error);
-        res.status(500).json({ message: 'Internal server error getting attendance threshold.' });
+        console.error('Error getting settings:', error);
+        res.status(500).json({ message: 'Internal server error getting settings.' });
     }
 };
 
@@ -342,27 +1616,11 @@ const updateAttendanceThreshold = async (req, res) => {
         await adminModel.updateAppSetting('attendance_threshold', String(threshold), 'Minimum attendance percentage for defaulters');
         res.status(200).json({ message: 'Attendance threshold updated successfully.' });
     } catch (error) {
-        console.error('Error updating attendance threshold:', error);
-        res.status(500).json({ message: 'Internal server error updating attendance threshold.' });
+        console.error('Error updating threshold:', error);
+        res.status(500).json({ message: 'Internal server error updating threshold.' });
     }
 };
 
-// --- NEW: DEFAULTERS LIST ---
-const getLowAttendanceDefaulters = async (req, res) => {
-    try {
-        // Fetch the attendance threshold from app_settings first
-        const thresholdSetting = await adminModel.getAppSetting('attendance_threshold');
-        const attendanceThreshold = thresholdSetting ? parseInt(thresholdSetting, 10) : 75; // Default to 75%
-
-        const defaulters = await adminModel.getDefaultersList(attendanceThreshold);
-        res.status(200).json(defaulters);
-    } catch (error) {
-        console.error('Error getting low attendance defaulters:', error);
-        res.status(500).json({ message: 'Internal server error fetching defaulters list.' });
-    }
-};
-
-// ----------- BACKUP DATA -----------
 const backupData = async (req, res) => {
     try {
         const tables = ['departments', 'faculties', 'students', 'subjects', 'enrollments', 'attendance_sessions', 'attendance_records', 'app_settings', 'admins'];
@@ -381,7 +1639,6 @@ const backupData = async (req, res) => {
     }
 };
 
-// ----------- ATTENDANCE SHEET PDF -----------
 const printAttendanceSheet = async (req, res) => {
     try {
         const doc = new PDFDocument();
@@ -404,6 +1661,40 @@ const printAttendanceSheet = async (req, res) => {
     }
 };
 
+const getDashboardStats = async (req, res) => {
+    try {
+        const subjectsCount = await adminModel.countEntities('subjects');
+        const studentsCount = await adminModel.countEntities('students');
+        const facultyCount = await adminModel.countEntities('faculties');
+        const departmentsCount = await adminModel.countEntities('departments');
+        const defaultersCount = await adminModel.countDefaulters();
+
+        res.status(200).json({
+            subjects: subjectsCount,
+            students: studentsCount,
+            faculties: facultyCount,
+            departments: departmentsCount,
+            defaulters: defaultersCount,
+        });
+    } catch (error) {
+        console.error('Error getting dashboard stats:', error);
+        res.status(500).json({ message: 'Internal server error getting dashboard stats.' });
+    }
+};
+
+const getDefaultersList = async (req, res) => {
+    const threshold = parseInt(req.query.threshold) || 75;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    try {
+        const { defaulters, totalItems, totalPages, currentPage } = await adminModel.getDefaultersList(threshold, page, limit);
+        res.status(200).json({ defaulters, totalItems, totalPages, currentPage });
+    } catch (error) {
+        console.error('Error getting defaulters list:', error);
+        res.status(500).json({ message: 'Internal server error getting defaulters list.' });
+    }
+};
+
 module.exports = {
     registerAdmin,
     loginAdmin,
@@ -419,14 +1710,14 @@ module.exports = {
     createStudent,
     updateStudent,
     deleteStudent,
-    getSubjects,
+    getSubjects, // This now returns paginated data
     createSubject,
     updateSubject,
     deleteSubject,
-    getDashboardStats,
     getAttendanceThreshold,
     updateAttendanceThreshold,
-    getLowAttendanceDefaulters, // EXPORT THE NEW DEFAULTERS CONTROLLER
     backupData,
-    printAttendanceSheet
+    printAttendanceSheet,
+    getDashboardStats,
+    getDefaultersList
 };

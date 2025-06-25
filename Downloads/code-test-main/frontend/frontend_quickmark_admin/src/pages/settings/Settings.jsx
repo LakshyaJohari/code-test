@@ -5,6 +5,11 @@ export default function Settings() {
     const [threshold, setThreshold] = useState(75);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isPrinting, setIsPrinting] = useState(false);
+    const [printMessage, setPrintMessage] = useState('');
+    const [isBackingUp, setIsBackingUp] = useState(false); // New state for backup loading
+    const [backupMessage, setBackupMessage] = useState(''); // New state for backup success/error message
+
 
     const getAdminToken = () => localStorage.getItem('adminToken');
 
@@ -48,8 +53,8 @@ export default function Settings() {
                     'Content-Type': 'application/json'
                 }
             });
-            alert(response.data.message);
-            fetchThreshold();
+            alert(response.data.message); // Keep alert for threshold update confirmation
+            fetchThreshold(); // Re-fetch to update UI after successful save
         } catch (err) {
             console.error('Error updating threshold:', err.response ? err.response.data : err.message);
             setError(err.response?.data?.message || 'Failed to update threshold.');
@@ -57,11 +62,13 @@ export default function Settings() {
     };
 
     const handleBackup = async () => {
-        alert('Initiating backup...');
+        setIsBackingUp(true); // Set loading true
+        setBackupMessage(''); // Clear previous message
         try {
             const token = getAdminToken();
             if (!token) {
-                alert('Admin not authenticated. Please log in again.');
+                setBackupMessage('Admin not authenticated. Please log in again to backup.');
+                setIsBackingUp(false);
                 return;
             }
             const response = await axios.get('http://localhost:3700/api/admin/backup', {
@@ -72,24 +79,28 @@ export default function Settings() {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', 'quickmark_backup.zip');
+            link.setAttribute('download', 'quickmark_backup.zip'); // Or use filename from Content-Disposition header if provided by backend
             document.body.appendChild(link);
-            link.click();
+            link.click(); // Trigger download
             link.parentNode.removeChild(link);
             window.URL.revokeObjectURL(url);
-            alert('Backup initiated successfully!');
+            setBackupMessage('Backup initiated successfully!'); // Show success message
         } catch (err) {
             console.error('Error during backup:', err.response ? err.response.data : err.message);
-            alert(`Backup failed: ${err.response?.data?.message || err.message}`);
+            setBackupMessage(`Backup failed: ${err.response?.data?.message || err.message}`); // Show error message
+        } finally {
+            setIsBackingUp(false); // Set loading false
         }
     };
 
     const handlePrintAttendanceSheet = async () => {
-        alert('Generating attendance sheet...');
+        setIsPrinting(true); // Set loading true
+        setPrintMessage(''); // Clear previous message
         try {
             const token = getAdminToken();
             if (!token) {
-                alert('Admin not authenticated. Please log in again.');
+                setPrintMessage('Admin not authenticated. Please log in again to print.');
+                setIsPrinting(false);
                 return;
             }
             const response = await axios.get('http://localhost:3700/api/admin/attendance-sheet', {
@@ -98,11 +109,13 @@ export default function Settings() {
             });
 
             const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-            window.open(url, '_blank');
-            alert('Attendance sheet generated!');
+            window.open(url, '_blank'); // Open PDF in new tab immediately
+            setPrintMessage('Attendance sheet generated successfully!');
         } catch (err) {
             console.error('Error printing attendance sheet:', err.response ? err.response.data : err.message);
-            alert(`Failed to generate attendance sheet: ${err.response?.data?.message || err.message}`);
+            setPrintMessage(`Failed to generate attendance sheet: ${err.response?.data?.message || err.message}`);
+        } finally {
+            setIsPrinting(false); // Set loading false
         }
     };
 
@@ -118,8 +131,10 @@ export default function Settings() {
                     <div>
                         <h4 className="font-semibold text-gray-800">Backup Data</h4>
                         <p className="text-sm text-gray-500 mt-1">Download a backup of all application data.</p>
+                        {isBackingUp && <div className="text-blue-500 text-sm mt-1">Generating backup...</div>} {/* Loading indicator */}
+                        {backupMessage && !isBackingUp && <div className={`text-sm mt-1 ${backupMessage.includes('failed') ? 'text-red-500' : 'text-green-600'}`}>{backupMessage}</div>} {/* Message display */}
                     </div>
-                    <button onClick={handleBackup} className="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 w-full sm:w-auto">
+                    <button onClick={handleBackup} disabled={isBackingUp} className="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 w-full sm:w-auto disabled:opacity-50">
                         Backup
                     </button>
                 </div>
@@ -127,8 +142,10 @@ export default function Settings() {
                     <div>
                         <h4 className="font-semibold text-gray-800">Print Attendance Sheet</h4>
                         <p className="text-sm text-gray-500 mt-1">Generate and print a master attendance sheet.</p>
+                        {isPrinting && <div className="text-blue-500 text-sm mt-1">Generating PDF...</div>} {/* Loading indicator */}
+                        {printMessage && !isPrinting && <div className={`text-sm mt-1 ${printMessage.includes('Failed') ? 'text-red-500' : 'text-green-600'}`}>{printMessage}</div>} {/* Message display */}
                     </div>
-                    <button onClick={handlePrintAttendanceSheet} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 w-full sm:w-auto">
+                    <button onClick={handlePrintAttendanceSheet} disabled={isPrinting} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 w-full sm:w-auto disabled:opacity-50">
                         Print
                     </button>
                 </div>

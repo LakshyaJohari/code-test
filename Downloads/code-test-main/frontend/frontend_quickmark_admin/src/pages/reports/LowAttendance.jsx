@@ -1,71 +1,196 @@
-// src/pages/reports/LowAttendance.jsx
+// // src/pages/reports/LowAttendance.jsx
+
+// import React, { useState, useEffect } from 'react';
+// import axios from 'axios';
+
+// export default function LowAttendance() {
+//     const [defaulters, setDefaulters] = useState([]);
+//     const [threshold, setThreshold] = useState(75); // Default threshold, will be updated from backend
+//     const [loading, setLoading] = useState(true);
+//     const [error, setError] = useState('');
+
+//     // Function to get the admin token from localStorage
+//     const getAdminToken = () => localStorage.getItem('adminToken');
+
+//     const fetchDefaulters = async () => {
+//         setLoading(true);
+//         setError(''); // Clear previous errors
+
+//         try {
+//             const token = getAdminToken();
+//             if (!token) {
+//                 // If no token, it means the user is not authenticated as admin
+//                 // The AdminProtectedRoute in App.jsx should already handle redirection,
+//                 // but this acts as a client-side safeguard.
+//                 setError('Admin not authenticated. Please log in again.');
+//                 setLoading(false);
+//                 return;
+//             }
+
+//             // --- 1. Fetch the attendance threshold from the backend ---
+//             // This call hits: GET /api/admin/settings/attendance-threshold
+//             const thresholdRes = await axios.get('http://localhost:3700/api/admin/settings/attendance-threshold', {
+//                 headers: { Authorization: `Bearer ${token}` }
+//             });
+//             const currentThreshold = thresholdRes.data.threshold;
+//             setThreshold(currentThreshold); // Update local state with the actual threshold
+
+//             // --- 2. Fetch the pre-calculated defaulters list from the new backend endpoint ---
+//             // This call hits: GET /api/admin/defaulters
+//             const defaultersRes = await axios.get('http://localhost:3700/api/admin/defaulters', {
+//                 headers: { Authorization: `Bearer ${token}` }
+//             });
+            
+//             // Set the received defaulters list
+//             setDefaulters(defaultersRes.data);
+            
+//         } catch (err) {
+//             console.error('Error fetching defaulters:', err.response ? err.response.data : err.message);
+//             // Display specific error from backend if available
+//             setError(err.response?.data?.message || 'Failed to load defaulters. Please try again.');
+            
+//             // If it's a 401/403, you might want to force a logout/redirect here if App.jsx doesn't catch it
+//             if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+//                 // This scenario means the token became invalid/expired or role check failed.
+//                 // The AdminProtectedRoute *should* handle this on next render, but for immediate UX:
+//                 // You could trigger a logout/redirect, e.g., if onLogout were passed as a prop
+//                 // props.onLogout(); // if you pass onLogout from App.jsx
+//             }
+
+//         } finally {
+//             setLoading(false); // Stop loading regardless of success or failure
+//         }
+//     };
+
+//     // useEffect to run the fetchDefaulters function when the component mounts
+//     useEffect(() => {
+//         fetchDefaulters();
+//     }, []); // Empty dependency array means it runs once on mount
+
+//     if (loading) return <div className="text-center text-xl mt-10">Loading Defaulters...</div>;
+//     if (error) return <div className="text-center text-red-500 text-xl mt-10">Error: {error}</div>;
+
+//     return (
+//         <div className="container mx-auto p-4">
+//             <h1 className="text-3xl font-bold mb-6 text-center">Low Attendance (Defaulters)</h1>
+
+//             <div className="mb-6 p-4 border rounded-lg shadow-sm bg-yellow-50 text-yellow-800 text-center">
+//                 <p className="text-lg font-semibold">Current Defaulter Threshold: {threshold}%</p>
+//                 <p className="text-sm mt-1">Students with attendance below this percentage are considered defaulters.</p>
+//             </div>
+
+//             <div className="p-4 border rounded-lg shadow-sm">
+//                 <h2 className="text-xl font-semibold mb-4">Defaulters List</h2>
+//                 {defaulters.length === 0 ? (
+//                     <p className="text-center text-gray-500">No defaulters found at or below {threshold}% attendance.</p>
+//                 ) : (
+//                     <table className="min-w-full bg-white border-collapse">
+//                         <thead>
+//                             <tr className="bg-gray-100 border-b">
+//                                 <th className="py-2 px-4 text-left">Roll No.</th>
+//                                 <th className="py-2 px-4 text-left">Name</th>
+//                                 <th className="py-2 px-4 text-left">Department</th>
+//                                 <th className="py-2 px-4 text-left">Attendance %</th> 
+//                             </tr>
+//                         </thead>
+//                         <tbody>
+//                             {/* Map over the actual defaulters data received from the backend */}
+//                             {defaulters.map((student) => (
+//                                 <tr key={student.student_id} className="border-b last:border-b-0 hover:bg-gray-50">
+//                                     <td className="py-2 px-4">{student.roll_number}</td>
+//                                     <td className="py-2 px-4">{student.student_name}</td> {/* Use student_name from query */}
+//                                     <td className="py-2 px-4">{student.department_name || 'N/A'}</td> 
+//                                     <td className="py-2 px-4">{student.attendance_percentage.toFixed(2)}%</td> {/* Display percentage, format to 2 decimal places */}
+//                                 </tr>
+//                             ))}
+//                         </tbody>
+//                     </table>
+//                 )}
+//             </div>
+//         </div>
+//     );
+// }
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { ChevronLeft, ChevronRight } from 'lucide-react'; // Import pagination icons
 
 export default function LowAttendance() {
     const [defaulters, setDefaulters] = useState([]);
-    const [threshold, setThreshold] = useState(75); // Default threshold, will be updated from backend
+    const [threshold, setThreshold] = useState(75);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // Function to get the admin token from localStorage
+    // --- PAGINATION STATE ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10); // Fixed to 10 per page
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+
     const getAdminToken = () => localStorage.getItem('adminToken');
 
-    const fetchDefaulters = async () => {
+    const fetchDefaulters = async (page = currentPage, limit = itemsPerPage) => {
         setLoading(true);
-        setError(''); // Clear previous errors
-
+        setError('');
         try {
             const token = getAdminToken();
             if (!token) {
-                // If no token, it means the user is not authenticated as admin
-                // The AdminProtectedRoute in App.jsx should already handle redirection,
-                // but this acts as a client-side safeguard.
                 setError('Admin not authenticated. Please log in again.');
                 setLoading(false);
                 return;
             }
 
-            // --- 1. Fetch the attendance threshold from the backend ---
-            // This call hits: GET /api/admin/settings/attendance-threshold
+            // Fetch threshold from backend
             const thresholdRes = await axios.get('http://localhost:3700/api/admin/settings/attendance-threshold', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const currentThreshold = thresholdRes.data.threshold;
-            setThreshold(currentThreshold); // Update local state with the actual threshold
+            setThreshold(currentThreshold);
 
-            // --- 2. Fetch the pre-calculated defaulters list from the new backend endpoint ---
-            // This call hits: GET /api/admin/defaulters
-            const defaultersRes = await axios.get('http://localhost:3700/api/admin/defaulters', {
+            // Fetch defaulters with pagination parameters
+            const defaultersRes = await axios.get(`http://localhost:3700/api/admin/defaulters?threshold=${currentThreshold}&page=${page}&limit=${limit}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            // Set the received defaulters list
-            setDefaulters(defaultersRes.data);
+            setDefaulters(defaultersRes.data.defaulters); // Access defaulters array from response
+            setTotalItems(defaultersRes.data.totalItems);
+            setTotalPages(defaultersRes.data.totalPages);
+            setCurrentPage(defaultersRes.data.currentPage);
             
         } catch (err) {
             console.error('Error fetching defaulters:', err.response ? err.response.data : err.message);
-            // Display specific error from backend if available
-            setError(err.response?.data?.message || 'Failed to load defaulters. Please try again.');
-            
-            // If it's a 401/403, you might want to force a logout/redirect here if App.jsx doesn't catch it
-            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-                // This scenario means the token became invalid/expired or role check failed.
-                // The AdminProtectedRoute *should* handle this on next render, but for immediate UX:
-                // You could trigger a logout/redirect, e.g., if onLogout were passed as a prop
-                // props.onLogout(); // if you pass onLogout from App.jsx
-            }
-
+            setError(err.response?.data?.message || 'Failed to load defaulters.');
         } finally {
-            setLoading(false); // Stop loading regardless of success or failure
+            setLoading(false);
         }
     };
 
-    // useEffect to run the fetchDefaulters function when the component mounts
     useEffect(() => {
-        fetchDefaulters();
-    }, []); // Empty dependency array means it runs once on mount
+        fetchDefaulters(currentPage, itemsPerPage); // Pass pagination params
+    }, [currentPage, itemsPerPage]); // Re-fetch when page or itemsPerPage changes
+
+    // Pagination Handlers
+    const handlePageChange = (newPage) => {
+        if (newPage > 0 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    const getPageNumbers = () => {
+        const maxVisibleButtons = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisibleButtons / 2));
+        let endPage = startPage + maxVisibleButtons - 1;
+        if (endPage > totalPages) {
+            endPage = totalPages;
+            startPage = Math.max(1, endPage - maxVisibleButtons + 1);
+        }
+        const pages = [];
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
+
 
     if (loading) return <div className="text-center text-xl mt-10">Loading Defaulters...</div>;
     if (error) return <div className="text-center text-red-500 text-xl mt-10">Error: {error}</div>;
@@ -94,18 +219,51 @@ export default function LowAttendance() {
                             </tr>
                         </thead>
                         <tbody>
-                            {/* Map over the actual defaulters data received from the backend */}
                             {defaulters.map((student) => (
                                 <tr key={student.student_id} className="border-b last:border-b-0 hover:bg-gray-50">
                                     <td className="py-2 px-4">{student.roll_number}</td>
-                                    <td className="py-2 px-4">{student.student_name}</td> {/* Use student_name from query */}
+                                    <td className="py-2 px-4">{student.student_name}</td>
                                     <td className="py-2 px-4">{student.department_name || 'N/A'}</td> 
-                                    <td className="py-2 px-4">{student.attendance_percentage.toFixed(2)}%</td> {/* Display percentage, format to 2 decimal places */}
+                                    <td className="py-2 px-4">{student.attendance_percentage.toFixed(2)}%</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
+            </div>
+
+            {/* Pagination Controls - Simplified and fixed limit to 10 per page */}
+            <div className="flex justify-between items-center mt-4 p-2 border-t pt-4">
+                <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 flex items-center"
+                >
+                    <ChevronLeft size={16} className="mr-2" /> Previous
+                </button>
+                <div className="flex flex-wrap gap-1">
+                    {getPageNumbers().map((page) => (
+                        <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`px-3 py-1 rounded-lg border ${
+                                page === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                        >
+                            {page}
+                        </button>
+                    ))}
+                </div>
+                <span className="text-sm text-gray-700">
+                    Page {currentPage} of {totalPages} (Total {totalItems} items)
+                </span>
+                <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 flex items-center"
+                >
+                    Next <ChevronRight size={16} className="ml-2" />
+                </button>
             </div>
         </div>
     );

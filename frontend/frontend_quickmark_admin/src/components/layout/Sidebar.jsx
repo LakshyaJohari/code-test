@@ -1,27 +1,28 @@
 // src/components/layout/Sidebar.jsx
 import React from "react";
-// Import new icons for the new navigation items
+// Import new icons
 import {
   LayoutDashboard,
   Book,
   User,
   ShieldAlert,
   Settings,
+  Building,
 } from "lucide-react";
 
 export default function Sidebar({ currentPage, navigateTo, onLogout }) {
-  // Updated navItems array with new links
+  // Updated navItems array
   const navItems = [
     { path: "Home", label: "Home", icon: LayoutDashboard },
+    { path: "Departments", label: "Departments", icon: Building }, // <-- New Department link
     { path: "Subjects", label: "Subjects", icon: Book },
     { path: "Students", label: "Students", icon: User },
     { path: "Faculty", label: "Faculty", icon: User },
     { path: "Defaulters", label: "Defaulters", icon: ShieldAlert },
-    { path: "FaceRegister", label: "Face Register", icon: "📷" }, // Using an emoji as a placeholder
+    { path: "FaceRegister", label: "Face Register", icon: "📷" },
     { path: "Settings", label: "Settings", icon: Settings },
   ];
 
-  // Helper function to render the icon component or emoji
   const getIcon = (item) => {
     const Icon = item.icon;
     if (typeof Icon === "string") {
@@ -31,7 +32,7 @@ export default function Sidebar({ currentPage, navigateTo, onLogout }) {
   };
 
   return (
-    <aside className="w-64 bg-white-800 text-black flex-col hidden md:flex">
+    <aside className="w-64 bg-white-800 text-black-900 flex-col hidden md:flex">
       <div className="h-16 flex items-center justify-center border-b border-slate-700">
         <h1 className="text-xl font-bold">QuickMark</h1>
       </div>
@@ -46,7 +47,7 @@ export default function Sidebar({ currentPage, navigateTo, onLogout }) {
                   className={`w-full flex items-center px-4 py-2.5 my-1 text-sm font-medium rounded-lg transition-colors duration-200 ${
                     isActive
                       ? "bg-primary text-white"
-                      : "text-black-300 hover:bg-primary hover:text-white"
+                      : "text-slate-800 hover:bg-primary hover:text-white"
                   }`}
                 >
                   {getIcon(item)}
@@ -57,7 +58,7 @@ export default function Sidebar({ currentPage, navigateTo, onLogout }) {
           })}
         </ul>
       </nav>
-      <div className="flex items-center justify-start p-4">
+      <div className="px-6 pb-4">
         <button
           onClick={onLogout}
           className="group flex items-center justify-center rounded-lg bg-red-500 px-4 py-2 font-bold text-white shadow-md transition-all duration-300 ease-in-out hover:bg-red-600 hover:shadow-lg"

@@ -1,3 +1,4 @@
+// src/pages/dashboard/Dashboard.jsx
 import React, { useState, useMemo } from "react";
 import {
   BarChart,
@@ -14,14 +15,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const ITEMS_PER_PAGE = 5;
 
 export default function Dashboard({ allStudents, allSubjects }) {
-  const [filters, setFilters] = useState({
-    year: "",
-    department: "",
-    faculty: "",
-  });
+  const [filters, setFilters] = useState({ year: "", department: "", faculty: "" });
   const [currentPage, setCurrentPage] = useState(0);
 
   const chartData = useMemo(() => {
+    if (!allStudents || !allSubjects) return [];
     const defaultersBySubject = allSubjects.map((subject) => {
       const studentsInSubject = allStudents.filter(
         (student) =>
@@ -35,15 +33,9 @@ export default function Dashboard({ allStudents, allSubjects }) {
     });
 
     return defaultersBySubject.filter((subject) => {
-      const yearMatch = filters.year
-        ? subject.year.toString() === filters.year
-        : true;
-      const departmentMatch = filters.department
-        ? subject.department === filters.department
-        : true;
-      const facultyMatch = filters.faculty
-        ? subject.faculty === filters.faculty
-        : true;
+      const yearMatch = filters.year ? subject.year.toString() === filters.year : true;
+      const departmentMatch = filters.department ? subject.department === filters.department : true;
+      const facultyMatch = filters.faculty ? subject.faculty === filters.faculty : true;
       return yearMatch && departmentMatch && facultyMatch;
     });
   }, [allStudents, allSubjects, filters]);
@@ -54,148 +46,56 @@ export default function Dashboard({ allStudents, allSubjects }) {
   }, [chartData, currentPage]);
 
   const totalPages = Math.ceil(chartData.length / ITEMS_PER_PAGE);
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
     setCurrentPage(0);
   };
-
-  const goToNextPage = () =>
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
+  const goToNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
   const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 0));
 
-  const uniqueYears = useMemo(
-    () => [...new Set(allSubjects.map((s) => s.year))],
-    [allSubjects]
-  );
-  const uniqueDepartments = useMemo(
-    () => [...new Set(allSubjects.map((s) => s.department))],
-    [allSubjects]
-  );
-  const uniqueFaculty = useMemo(
-    () => [...new Set(allSubjects.map((s) => s.faculty))],
-    [allSubjects]
-  );
+  const uniqueYears = useMemo(() => [...new Set(allSubjects.map((s) => s.year))], [allSubjects]);
+  const uniqueDepartments = useMemo(() => [...new Set(allSubjects.map((s) => s.department))], [allSubjects]);
+  const uniqueFaculty = useMemo(() => [...new Set(allSubjects.map((s) => s.faculty))], [allSubjects]);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        Defaulters Analysis by Subject
-      </h2>
-
-      {/* Filter Controls */}
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Defaulters Analysis by Subject</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <select
-          name="year"
-          value={filters.year}
-          onChange={handleFilterChange}
-          className="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          <option value="">All Years</option>
-          {uniqueYears.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
+        <select name="year" value={filters.year} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
+          <option key="all-years" value="">All Years</option>
+          {uniqueYears.map((y) => (<option key={y} value={y}>{y}</option>))}
         </select>
-        <select
-          name="department"
-          value={filters.department}
-          onChange={handleFilterChange}
-          className="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          <option value="">All Departments</option>
-          {uniqueDepartments.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
+        <select name="department" value={filters.department} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
+          <option key="all-depts" value="">All Departments</option>
+          {uniqueDepartments.map((d) => (<option key={d} value={d}>{d}</option>))}
         </select>
-        <select
-          name="faculty"
-          value={filters.faculty}
-          onChange={handleFilterChange}
-          className="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          <option value="">All Faculty</option>
-          {uniqueFaculty.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
+        <select name="faculty" value={filters.faculty} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
+          <option key="all-faculty" value="">All Faculty</option>
+          {uniqueFaculty.map((f) => (<option key={f} value={f}>{f}</option>))}
         </select>
       </div>
 
-      {/* Chart */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-        <div style={{ width: "100%", height: 400 }}>
-          <ResponsiveContainer>
-            <BarChart
-              data={paginatedData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              layout="vertical"
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis
-                type="number"
-                allowDecimals={false}
-                tick={{ fontSize: 12, fill: "#6B7280" }}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={150}
-                tick={{ fontSize: 13, fill: "#374151" }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#ffffff",
-                  borderColor: "#e5e7eb",
-                }}
-                labelStyle={{ color: "#111827", fontWeight: "500" }}
-                itemStyle={{ color: "#1D4ED8" }}
-              />
-              <Legend verticalAlign="top" height={36} />
-              <Bar
-                dataKey="defaulters"
-                fill="#1D4ED8"
-                radius={[4, 4, 0, 0]}
-                name="Defaulters"
-                barSize={20}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div style={{ width: "100%", height: 400 }}>
+        <ResponsiveContainer>
+          {/* UPDATED: The layout prop is removed to default to a vertical chart. Margin is adjusted for bottom labels. */}
+          <BarChart data={paginatedData} margin={{ top: 20, right: 30, left: 20, bottom: 75 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            {/* UPDATED: XAxis now shows the subject name. Ticks are angled to prevent overlap. */}
+            <XAxis dataKey="name" type="category" angle={0} textAnchor="end" interval={0} tick={{ fontSize: 12 }} />
+            {/* UPDATED: YAxis now shows the number of defaulters. */}
+            <YAxis type="number" allowDecimals={false} dataKey="defaulters" />
+            <Tooltip />
+            <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }}/>
+            <Bar dataKey="defaulters" fill="#EF4444" name="Defaulters"/>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-
-      {/* Pagination Controls */}
+      
       <div className="flex justify-end items-center mt-4">
-        <span className="text-sm text-gray-600 mr-4">
-          Page {currentPage + 1} of {totalPages > 0 ? totalPages : 1}
-        </span>
-        <button
-          onClick={goToPrevPage}
-          disabled={currentPage === 0}
-          className={`px-3 py-1 border text-sm rounded-md mr-2 ${
-            currentPage === 0
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-white text-black hover:bg-gray-100 border-gray-300"
-          }`}
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <button
-          onClick={goToNextPage}
-          disabled={currentPage >= totalPages - 1}
-          className={`px-3 py-1 border text-sm rounded-md ${
-            currentPage >= totalPages - 1
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-white text-black hover:bg-gray-100 border-gray-300"
-          }`}
-        >
-          <ChevronRight size={18} />
-        </button>
+        <span className="text-sm text-gray-600 mr-4">Page {currentPage + 1} of {totalPages > 0 ? totalPages : 1}</span>
+        <button onClick={goToPrevPage} disabled={currentPage === 0} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronLeft size={20} /></button>
+        <button onClick={goToNextPage} disabled={currentPage >= totalPages - 1} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronRight size={20} /></button>
       </div>
     </div>
   );

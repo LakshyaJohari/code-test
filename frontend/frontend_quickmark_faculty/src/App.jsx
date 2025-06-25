@@ -35,27 +35,11 @@ const mockSubjects = [
 ];
 
 const mockStudents = {
-    1: [
-        { id: 201, name: 'Alice Johnson', rollNo: '2023-ECE-001', attendance: 74 },
-        { id: 202, name: 'Bob Williams', rollNo: '2023-ECE-002', attendance: 92 },
-    ],
-    2: [
-        { id: 301, name: 'Charlie Brown', rollNo: '2024-ECE-001', attendance: 72 },
-    ],
-    3: [
-        { id: 401, name: 'Diana Miller', rollNo: '2022-IT-001', attendance: 95 },
-        { id: 402, name: 'Eve Davis', rollNo: '2022-IT-002', attendance: 68 },
-        { id: 403, name: 'Frank White', rollNo: '2022-IT-003', attendance: 71 },
-    ],
-    4: [ 
-        { id: 101, name: 'Ethan Harper', rollNo: '2021-MATH-001', attendance: 90 },
-        { id: 102, name: 'Olivia Bennett', rollNo: '2021-MATH-002', attendance: 85 },
-        { id: 103, name: 'Noah Carter', rollNo: '2021-MATH-003', attendance: 70 },
-        { id: 104, name: 'Ava Davis', rollNo: '2021-MATH-004', attendance: 95 },
-        { id: 105, name: 'Liam Evans', rollNo: '2021-MATH-005', attendance: 65 },
-        { id: 106, name: 'Sophia Foster', rollNo: '2021-MATH-006', attendance: 80 },
-    ],
-    5: [] // Subject E has no students enrolled
+    1: [{ id: 201, name: 'Alice Johnson', rollNo: '2023-ECE-001', attendance: 74 },{ id: 202, name: 'Bob Williams', rollNo: '2023-ECE-002', attendance: 92 },],
+    2: [{ id: 301, name: 'Charlie Brown', rollNo: '2024-ECE-001', attendance: 72 },],
+    3: [{ id: 401, name: 'Diana Miller', rollNo: '2022-IT-001', attendance: 95 },{ id: 402, name: 'Eve Davis', rollNo: '2022-IT-002', attendance: 68 },{ id: 403, name: 'Frank White', rollNo: '2022-IT-003', attendance: 71 },],
+    4: [{ id: 101, name: 'Ethan Harper', rollNo: '2021-MATH-001', attendance: 90 },{ id: 102, name: 'Olivia Bennett', rollNo: '2021-MATH-002', attendance: 85 },{ id: 103, name: 'Noah Carter', rollNo: '2021-MATH-003', attendance: 70 },{ id: 104, name: 'Ava Davis', rollNo: '2021-MATH-004', attendance: 95 },{ id: 105, name: 'Liam Evans', rollNo: '2021-MATH-005', attendance: 65 },{ id: 106, name: 'Sophia Foster', rollNo: '2021-MATH-006', attendance: 80 },],
+    5: []
 };
 
 
@@ -67,35 +51,28 @@ function App() {
     }
   }, []);
 
+  // State Management
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [route, setRoute] = useState('/login');
   const [selectedSubject, setSelectedSubject] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null); // State for the clicked student
 
+  // Navigation Functions
   const navigate = (newRoute) => setRoute(newRoute);
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-    navigate('/dashboard');
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    navigate('/login');
-  };
-
+  const handleLogin = () => { setIsAuthenticated(true); navigate('/dashboard'); };
+  const handleLogout = () => { setIsAuthenticated(false); navigate('/login'); };
+  
   const handleSelectSubject = (subject) => {
     setSelectedSubject(subject);
     navigate('/subject-detail');
   };
 
+  // This function is the key to connecting the pages.
+  // It receives the student object, stores it in state, and navigates.
   const handleViewStudentCalendar = (student) => {
     setSelectedStudent(student);
-    navigate('./pages/Calendar');
-  }
-
-  const handleStartAttendanceFlow = () => {
-      navigate('/mark-attendance');
+    navigate('/calendar');
   }
 
   const handleStartQR = (subject) => {
@@ -103,22 +80,20 @@ function App() {
       navigate('/start-qr');
   }
 
+  // --- Render Logic ---
   const renderContent = () => {
     if (!isAuthenticated) {
       return <LoginPage onLogin={handleLogin} />;
     }
     switch (route) {
       case '/dashboard':
-        // *** UPDATED: Pass all necessary data to the Dashboard ***
-        return <Dashboard 
-                  user={mockUser} 
-                  subjects={mockSubjects} 
-                  students={mockStudents}
-               />;
+        return <Dashboard user={mockUser} subjects={mockSubjects} students={mockStudents}/>;
       case '/mark-attendance':
         return <MarkAttendance subjects={mockSubjects} onStart={handleStartQR} />;
       case '/subjects':
         return <Subjects subjects={mockSubjects} onSelectSubject={handleSelectSubject} />;
+      
+      // We pass the handleViewStudentCalendar function as the onSelectStudent prop
       case '/subject-detail':
         return <SubjectDetail 
                   subject={selectedSubject} 
@@ -126,41 +101,34 @@ function App() {
                   onBack={() => navigate('/subjects')} 
                   onSelectStudent={handleViewStudentCalendar}
                />;
+      
       case '/start-qr':
-        return <StartQR 
-                  subject={selectedSubject} 
-                  onBack={() => navigate('/mark-attendance')} 
-                  onSubmit={() => navigate('/dashboard')} 
-               />;
+        return <StartQR subject={selectedSubject} onBack={() => navigate('/mark-attendance')} onSubmit={() => navigate('/dashboard')} />;
+      
+      // We pass the selected student from state to the Calendar component
       case '/calendar':
         return <Calendar 
                   subject={selectedSubject} 
                   student={selectedStudent} 
                   onBack={() => navigate('/subject-detail')} 
                 />;
+
       case '/profile':
         return <Profile user={mockUser} onLogout={handleLogout}/>;
       case '/settings':
         return <Settings />;
       default:
-        return <Dashboard user={mockUser} subjects={mockSubjects} students={mockStudents} />;
+        return <Dashboard user={mockUser} subjects={mockSubjects} students={mockStudents}/>;
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-white-100">
+    <div className="flex min-h-screen bg-gray-100">
       {isAuthenticated && <Sidebar currentRoute={route} onNavigate={navigate} />}
       <div className="flex-1 flex flex-col">
-        {isAuthenticated && (
-          <Navbar
-            user={mockUser}
-            onNavigate={navigate}
-            // ✅ CHANGE THIS LINE: Pass the current route to the Navbar
-            currentRoute={route}
-          />
-        )}
+        {isAuthenticated && <Navbar user={mockUser} onNavigate={navigate} />}
         <main className="p-4 sm:p-6 md:p-8 flex-1">
-          {renderContent()}
+            {renderContent()}
         </main>
       </div>
     </div>

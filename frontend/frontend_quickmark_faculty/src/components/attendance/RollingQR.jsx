@@ -49,7 +49,8 @@ const RotatingQR = ({ sessionId, subjectId, facultyId }) => {
 
 export default RotatingQR;
 
-/*app.post("/api/verify-qr", (req, res) => {
+/*  ###Backend API###
+app.post("/api/verify-qr", (req, res) => {
   try {
     const { qrData } = req.body;
     const { session_id, subject_id, faculty_id, session_date, start_time } = JSON.parse(qrData);

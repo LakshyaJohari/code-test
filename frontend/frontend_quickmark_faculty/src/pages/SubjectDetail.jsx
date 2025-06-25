@@ -8,21 +8,17 @@ import {
 } from "lucide-react";
 
 const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
-  // ✨ 1. State for search term and filter toggle
   const [searchTerm, setSearchTerm] = useState("");
   const [showLowAttendanceOnly, setShowLowAttendanceOnly] = useState(false);
 
   const getAttendanceBarColor = (percentage) => {
-    if (percentage < 75) return "bg-red-500"; // Made the red more vibrant
+    if (percentage < 75) return "bg-red-500";
     return "bg-blue-500";
   };
 
-  // ✨ 2. Derived state for the list that gets displayed
-  // useMemo optimizes performance by only recalculating when dependencies change
   const filteredStudents = useMemo(() => {
     return students
       .filter((student) => {
-        // Search functionality (checks name and roll no)
         const term = searchTerm.toLowerCase();
         return (
           student.name.toLowerCase().includes(term) ||
@@ -30,10 +26,79 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
         );
       })
       .filter((student) => {
-        // Low attendance filter functionality
         return !showLowAttendanceOnly || student.attendance < 75;
       });
   }, [students, searchTerm, showLowAttendanceOnly]);
+
+  // --- ✨ NEW: Print Functionality ---
+  const handlePrint = () => {
+    // 1. Create the HTML content for the printout
+    const printContent = `
+      <html>
+        <head>
+          <title>Attendance Report - ${subject.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2 { color: #333; }
+            h1 { font-size: 24px; }
+            h2 { font-size: 20px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .low-attendance { color: #D32F2F; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Attendance Report</h1>
+          <h2>Subject: ${subject.name}</h2>
+          <p>Date: ${new Date().toLocaleDateString()}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Roll No.</th>
+                <th>Student Name</th>
+                <th>Attendance</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredStudents
+                .map(
+                  (student) => `
+                <tr>
+                  <td>${student.rollNo}</td>
+                  <td>${student.name}</td>
+                  <td class="${student.attendance < 75 ? 'low-attendance' : ''}">${student.attendance}%</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    // 2. Create a hidden iframe to load the content
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    // 3. Write the content to the iframe and trigger the print dialog
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(printContent);
+    doc.close();
+    iframe.contentWindow.focus(); // Focus is required for some browsers
+    iframe.contentWindow.print();
+
+    // 4. Remove the iframe after a delay
+    setTimeout(() => {
+        document.body.removeChild(iframe);
+    }, 1000);
+  };
 
   if (!subject) {
     return (
@@ -63,7 +128,6 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
           </button>
           <div className="flex justify-between">
             <h2 className="text-3xl font-bold text-gray-800">{subject.name}</h2>
-            
           </div>
           <p className="text-gray-500 mt-1">
             Student attendance overview for this subject.
@@ -71,7 +135,7 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
         </div>
 
         <div className="flex items-center space-x-2">
-            <div className="relative w-full md:w-1/3">
+            <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
@@ -85,23 +149,21 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
             </div>
           <button
             onClick={() => setShowLowAttendanceOnly(!showLowAttendanceOnly)}
-            className={`
-                        flex items-center px-4 py-2 rounded-lg font-medium shadow-sm w-full md:w-auto justify-center
-                        transition-colors duration-200
-                        ${
-                          showLowAttendanceOnly
-                            ? "bg-red-500 text-white"
-                            : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
-                        }
-                    `}
+            className={`flex items-center px-4 py-2 rounded-lg font-medium shadow-sm transition-colors duration-200 ${
+                showLowAttendanceOnly
+                    ? "bg-red-500 text-white"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+            }`}
           >
             <AlertTriangle size={18} className="mr-2" />
             {showLowAttendanceOnly
               ? "Showing Low Attendance"
               : "Filter Low Attendance"}
           </button>
-
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 shadow-sm">
+          {/* ✨ UPDATED: Added onClick handler to the Print button */}
+          <button 
+            onClick={handlePrint}
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 shadow-sm">
             <Printer size={18} className="mr-2" />
             Print
           </button>
@@ -114,20 +176,13 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Roll No.
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Student Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Attendance %
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No.</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance %</th>
                 <th className="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {/* ✨ 4. Map over the new 'filteredStudents' array */}
               {filteredStudents.length > 0 ? (
                 filteredStudents.map((student) => (
                   <tr
@@ -135,27 +190,19 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
                     className="cursor-pointer hover:bg-gray-50 group"
                     onClick={() => onSelectStudent(student)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {student.rollNo}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">
-                      {student.name}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">{student.rollNo}</td>
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">{student.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mr-4">
                           <div
-                            className={`${getAttendanceBarColor(
-                              student.attendance
-                            )} h-2.5 rounded-full`}
+                            className={`${getAttendanceBarColor(student.attendance)} h-2.5 rounded-full`}
                             style={{ width: `${student.attendance}%` }}
                           ></div>
                         </div>
                         <span
                           className={`font-medium text-sm w-12 text-right ${
-                            student.attendance < 75
-                              ? "text-red-600"
-                              : "text-gray-600"
+                            student.attendance < 75 ? "text-red-600" : "text-gray-600"
                           }`}
                         >
                           {student.attendance}%
@@ -163,15 +210,11 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <ChevronRight
-                        size={20}
-                        className="text-gray-400 group-hover:text-blue-600"
-                      />
+                      <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600"/>
                     </td>
                   </tr>
                 ))
               ) : (
-                // ✨ 5. Show a message when no students match filters
                 <tr>
                   <td colSpan="4" className="text-center py-10 text-gray-500">
                     No students found matching your criteria.

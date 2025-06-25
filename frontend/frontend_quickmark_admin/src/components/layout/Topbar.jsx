@@ -1,5 +1,6 @@
 // src/components/layout/Topbar.jsx
 import React, { useState, useEffect, useRef } from "react";
+import { Bell, User, ArrowLeft } from 'lucide-react';
 
 // The component now accepts an `onLogout` function prop
 export default function Topbar({ title, showBackButton, onBack, onLogout }) {
@@ -24,6 +25,15 @@ export default function Topbar({ title, showBackButton, onBack, onLogout }) {
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
       <div className="flex items-center">
+        {showBackButton && (
+          <button
+            onClick={onBack}
+            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={22} />
+          </button>
+        )}
         </div>
       <div className="flex items-center space-x-4">
         <button className="p-2 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700">

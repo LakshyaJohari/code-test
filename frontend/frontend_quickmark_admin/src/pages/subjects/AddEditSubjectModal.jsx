@@ -1,89 +1,10 @@
 // src/pages/subjects/AddEditSubjectModal.jsx
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Search, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, AlertCircle } from 'lucide-react';
 
-// A new, reusable component for a searchable dropdown
-const SearchableDropdown = ({ options, value, onChange, placeholder }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    // This handles clicks outside of the dropdown to close it
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownRef]);
-  
-  const filteredOptions = useMemo(
-    () => options.filter(option => option.toLowerCase().includes(searchTerm.toLowerCase())),
-    [options, searchTerm]
-  );
-
-  const handleSelect = (option) => {
-    onChange(option);
-    setIsOpen(false);
-    setSearchTerm('');
-  };
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full p-2 border rounded-md bg-white text-left flex justify-between items-center"
-      >
-        <span>{value || <span className="text-gray-500">{placeholder}</span>}</span>
-        <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <div className="absolute z-10 top-full mt-1 w-full bg-white rounded-md shadow-lg border">
-          <div className="p-2">
-            <div className="relative">
-              <Search size={16} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-2 py-1.5 border rounded-md"
-              />
-            </div>
-          </div>
-          <ul className="max-h-40 overflow-y-auto">
-            {filteredOptions.map(option => (
-              <li key={option}>
-                <button
-                  type="button"
-                  onClick={() => handleSelect(option)}
-                  className="w-full text-left px-4 py-2 hover:bg-blue-50"
-                >
-                  {option}
-                </button>
-              </li>
-            ))}
-             {filteredOptions.length === 0 && <p className="text-center text-gray-500 py-2">No results found.</p>}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-};
-
-
-// The main modal component, now using the searchable dropdown
 export default function AddEditSubjectModal({ subject, allDepartments, allFaculty, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    department: '',
-    faculty: '',
-    startYear: new Date().getFullYear(),
-  });
+  const [formData, setFormData] = useState({ name: '', department: '', faculty: '', startYear: new Date().getFullYear() });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (subject) {
@@ -99,20 +20,38 @@ export default function AddEditSubjectModal({ subject, allDepartments, allFacult
   const departmentNames = useMemo(() => allDepartments.map(d => d.name), [allDepartments]);
   const facultyNames = useMemo(() => allFaculty.map(f => f.name), [allFaculty]);
 
-  const handleChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+  // --- NEW: A robust validation function ---
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) {
+        newErrors.name = "Subject name is required.";
+    }
+    // Check if the entered department exists in the master list.
+    if (!departmentNames.includes(formData.department)) {
+      newErrors.department = "Please select a valid department from the list.";
+    }
+    // Check if the entered faculty exists in the master list.
+    if (!facultyNames.includes(formData.faculty)) {
+      newErrors.faculty = "Please select a valid faculty member from the list.";
+    }
+    return newErrors;
   };
-  
-  const handleTextChange = (e) => {
-      const { name, value } = e.target;
-      setFormData(prev => ({...prev, [name]: value}));
-  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // As the user types, clear the error for that field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.department || !formData.faculty) {
-      alert("Please fill out all fields.");
-      return;
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return; // Stop submission if there are validation errors
     }
     onSave(formData);
   };
@@ -124,32 +63,70 @@ export default function AddEditSubjectModal({ subject, allDepartments, allFacult
           <h2 className="text-2xl font-bold text-gray-800">{subject ? 'Edit Subject' : 'Add New Subject'}</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200"><X size={24} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subject Name</label>
-              <input type="text" name="name" value={formData.name} onChange={handleTextChange} required className="w-full p-2 border rounded-md" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-              <SearchableDropdown
-                options={departmentNames}
-                value={formData.department}
-                onChange={(value) => handleChange('department', value)}
-                placeholder="Select a department"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Faculty</label>
-               <SearchableDropdown
-                options={facultyNames}
-                value={formData.faculty}
-                onChange={(value) => handleChange('faculty', value)}
-                placeholder="Select a faculty member"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Subject Name</label>
+            <input
+              id="name"
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+            />
+          </div>
+          
+          {/* --- UPDATED: Department field with native autocomplete and validation --- */}
+          <div>
+            <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <input
+              id="department"
+              type="text"
+              name="department"
+              value={formData.department}
+              onChange={handleChange}
+              list="department-list"
+              className={`w-full p-2 border rounded-md ${errors.department ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Type to search departments..."
+            />
+            <datalist id="department-list">
+              {departmentNames.map(name => <option key={name} value={name} />)}
+            </datalist>
+            {errors.department && (
+              <div className="flex items-center text-red-600 text-xs mt-1">
+                <AlertCircle size={14} className="mr-1" />
+                {errors.department}
+              </div>
+            )}
+          </div>
+          
+          {/* --- UPDATED: Faculty field with native autocomplete and validation --- */}
+          <div>
+            <label htmlFor="faculty" className="block text-sm font-medium text-gray-700 mb-1">Assigned Faculty</label>
+            <input
+              id="faculty"
+              type="text"
+              name="faculty"
+              value={formData.faculty}
+              onChange={handleChange}
+              list="faculty-list"
+              className={`w-full p-2 border rounded-md ${errors.faculty ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Type to search faculty..."
+            />
+            <datalist id="faculty-list">
+              {facultyNames.map(name => <option key={name} value={name} />)}
+            </datalist>
+            {errors.faculty && (
+              <div className="flex items-center text-red-600 text-xs mt-1">
+                <AlertCircle size={14} className="mr-1" />
+                {errors.faculty}
+              </div>
+            )}
+          </div>
+          
           <div className="flex justify-end space-x-4 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Subject</button>
+            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save Subject</button>
           </div>
         </form>
       </div>

@@ -7,8 +7,11 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterYear, setFilterYear] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
+  
   const filterMenuRef = useRef(null);
   const fileInputRef = useRef(null);
+  const printableContentRef = useRef(null);
+
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -37,7 +40,32 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
   }, [students, searchTerm, filterYear, filterDepartment]);
   
   const handlePrint = () => {
-      window.print();
+      const printContent = printableContentRef.current.innerHTML;
+      const printWindow = window.open('', '', 'height=800,width=800');
+      
+      printWindow.document.write('<html><head><title>Student List</title>');
+      printWindow.document.write('<style>');
+      printWindow.document.write(`
+          body { font-family: sans-serif; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          h1 { text-align: center; }
+          .no-students { text-align: center; padding: 20px; font-style: italic; }
+          /* --- FIX: This class will hide the Actions column when printing --- */
+          .no-print { display: none; }
+      `);
+      printWindow.document.write('</style></head><body>');
+      printWindow.document.write('<h1>Student List</h1>');
+      printWindow.document.write(printContent);
+      printWindow.document.write('</body></html>');
+      
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+      }, 250);
   };
 
   const handleImportClick = () => {
@@ -47,7 +75,6 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
   const handleFileImport = (e) => {
       const file = e.target.files[0];
       if (file) {
-          // In a real app, you would parse the CSV/Excel file here.
           alert(`Importing students from ${file.name}...`);
       }
   };
@@ -79,8 +106,7 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
             <input type="text" placeholder="Search by name or roll no..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"/>
         </div>
       
-      {/* Student Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" ref={printableContentRef}>
         <table className="w-full text-left">
           <thead>
             <tr className="border-b">
@@ -88,7 +114,8 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
               <th className="py-2 px-4">Roll No.</th>
               <th className="py-2 px-4">Start Year</th>
               <th className="py-2 px-4">Department</th>
-              <th className="py-2 px-4 text-right">Actions</th>
+              {/* --- FIX: Add no-print class to Actions header --- */}
+              <th className="py-2 px-4 text-right no-print">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -98,7 +125,8 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
                 <td className="py-3 px-4">{student.rollNo}</td>
                 <td className="py-3 px-4">{student.startYear}</td>
                 <td className="py-3 px-4">{student.department}</td>
-                <td className="py-3 px-4 text-right">
+                {/* --- FIX: Add no-print class to Actions cell --- */}
+                <td className="py-3 px-4 text-right no-print">
                    <button onClick={() => onEdit(student)} className="text-blue-500 hover:underline font-semibold text-sm mr-4">Edit</button>
                    <button onClick={() => onDelete(student.id)} className="text-red-500 hover:underline font-semibold text-sm">Delete</button>
                 </td>
@@ -106,7 +134,7 @@ export default function StudentsList({ students, onAdd, onEdit, onDelete }) {
             ))}
           </tbody>
         </table>
-         {filteredStudents.length === 0 && <div className="text-center py-10"><p className="text-gray-500">No students found.</p></div>}
+         {filteredStudents.length === 0 && <div className="text-center py-10 no-students"><p className="text-gray-500">No students found.</p></div>}
       </div>
     </div>
   )

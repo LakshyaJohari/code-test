@@ -63,27 +63,27 @@ export default function Dashboard({ allStudents, allSubjects }) {
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Defaulters Analysis by Subject</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <select name="year" value={filters.year} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
-          <option key="all-years" value="">All Years</option>
-          {uniqueYears.map((y) => (<option key={y} value={y}>{y}</option>))}
+          <option value="">All Years</option>
+          {/* FIX: Added a unique key using the value and index */}
+          {uniqueYears.map((y, index) => (<option key={`year-${index}`} value={y}>{y}</option>))}
         </select>
         <select name="department" value={filters.department} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
-          <option key="all-depts" value="">All Departments</option>
-          {uniqueDepartments.map((d) => (<option key={d} value={d}>{d}</option>))}
+          <option value="">All Departments</option>
+          {/* FIX: Added a unique key using the value and index */}
+          {uniqueDepartments.map((d, index) => (<option key={`dept-${index}`} value={d}>{d}</option>))}
         </select>
         <select name="faculty" value={filters.faculty} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
-          <option key="all-faculty" value="">All Faculty</option>
-          {uniqueFaculty.map((f) => (<option key={f} value={f}>{f}</option>))}
+          <option value="">All Faculty</option>
+          {/* FIX: Added a unique key using the value and index */}
+          {uniqueFaculty.map((f, index) => (<option key={`faculty-${index}`} value={f}>{f}</option>))}
         </select>
       </div>
 
       <div style={{ width: "100%", height: 400 }}>
         <ResponsiveContainer>
-          {/* UPDATED: The layout prop is removed to default to a vertical chart. Margin is adjusted for bottom labels. */}
           <BarChart data={paginatedData} margin={{ top: 20, right: 30, left: 20, bottom: 75 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            {/* UPDATED: XAxis now shows the subject name. Ticks are angled to prevent overlap. */}
-            <XAxis dataKey="name" type="category" angle={0} textAnchor="end" interval={0} tick={{ fontSize: 12 }} />
-            {/* UPDATED: YAxis now shows the number of defaulters. */}
+            <XAxis dataKey="name" type="category" angle={0} textAnchor="middle" interval={0} tick={{ fontSize: 12 }} />
             <YAxis type="number" allowDecimals={false} dataKey="defaulters" />
             <Tooltip />
             <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }}/>

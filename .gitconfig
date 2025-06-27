@@ -1,0 +1,13 @@
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[user]
+	name = Adithya
+	email = adithya3218@gmail.com
+[alias]
+	cm = commit -m
+	co = checkout
+[credential]
+	user = chavaliadi

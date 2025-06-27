@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/app_initializer.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/home_screen_new.dart';
 import 'pages/onboarding/onboarding.dart';
 
 void main() {

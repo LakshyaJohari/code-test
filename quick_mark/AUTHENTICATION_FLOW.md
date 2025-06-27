@@ -61,7 +61,15 @@ lib/
 │   ├── app_initializer.dart           # App startup logic
 │   ├── login_screen.dart              # Login UI and logic
 │   ├── register_screen.dart           # Registration UI and logic
-│   └── home_screen.dart               # Main app dashboard
+│   ├── home_screen_new.dart           # Main app dashboard with tabs
+│   ├── attendance/
+│   │   └── attendance_screen.dart     # Attendance tracking
+│   ├── dashboard/
+│   │   └── dashboard_screen.dart      # Analytics dashboard
+│   ├── face/
+│   │   └── face_registration_screen.dart # Face registration
+│   └── profile/
+│       └── profile_screen.dart        # User profile
 └── pages/
     └── onboarding/
         └── onboarding.dart            # Onboarding flow
@@ -70,7 +78,7 @@ lib/
 ## API Endpoints
 
 ### Login
-- **URL**: `POST localhost:3700/api/student/auth/login`
+- **URL**: `POST https://backend-attendance-flutter-service.onrender.com/api/student/auth/login`
 - **Request**:
   ```json
   {
@@ -93,7 +101,7 @@ lib/
   ```
 
 ### Register
-- **URL**: `POST localhost:3700/api/student/auth/register`
+- **URL**: `POST https://backend-attendance-flutter-service.onrender.com/api/student/auth/register`
 - **Request**:
   ```json
   {

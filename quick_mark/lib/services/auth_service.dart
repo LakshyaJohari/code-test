@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_models.dart';
+import '../config/app_config.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://10.0.2.2:3700/api/student/auth';
-
   // Store and retrieve JWT token
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,28 +41,29 @@ class AuthService {
     await prefs.remove('student_data');
   }
 
-  // Check if token is valid (you might want to add actual token validation)
+  // Check if token is valid
   static Future<bool> isTokenValid() async {
     final token = await getToken();
     if (token == null) return false;
 
-    // You can add JWT token expiry validation here
-    // For now, we'll just check if token exists
-    // In a real app, you might want to decode JWT and check expiry
+    // Add JWT token expiry validation here if needed
     return true;
   }
 
-  // Login method
+  // Login user with credentials
   static Future<AuthResponse?> login(LoginRequest loginRequest) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(loginRequest.toJson()),
-      );
+      final response = await http
+          .post(
+            Uri.parse(AppConfig.loginEndpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(loginRequest.toJson()),
+          )
+          .timeout(AppConfig.requestTimeout);
 
       if (response.statusCode == 200) {
-        final authResponse = AuthResponse.fromJson(jsonDecode(response.body));
+        final responseData = jsonDecode(response.body);
+        final authResponse = AuthResponse.fromJson(responseData);
 
         // Save token and student data
         if (authResponse.token != null) {
@@ -73,8 +73,7 @@ class AuthService {
 
         return authResponse;
       } else {
-        // Handle error
-        print('Login failed: ${response.body}');
+        print('Login failed: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
@@ -83,25 +82,30 @@ class AuthService {
     }
   }
 
-  // Register method
+  // Register new user
   static Future<AuthResponse?> register(RegisterRequest registerRequest) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(registerRequest.toJson()),
-      );
+      final response = await http
+          .post(
+            Uri.parse(AppConfig.registerEndpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(registerRequest.toJson()),
+          )
+          .timeout(AppConfig.requestTimeout);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final authResponse = AuthResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        final authResponse = AuthResponse.fromJson(responseData);
 
-        // Save student data (register might not return token)
-        await saveStudent(authResponse.student);
+        // Save token and student data
+        if (authResponse.token != null) {
+          await saveToken(authResponse.token!);
+          await saveStudent(authResponse.student);
+        }
 
         return authResponse;
       } else {
-        // Handle error
-        print('Registration failed: ${response.body}');
+        print('Registration failed: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
@@ -110,16 +114,15 @@ class AuthService {
     }
   }
 
-  // Logout method
+  // Logout user
   static Future<void> logout() async {
     await removeToken();
     await removeStudent();
   }
 
-  // Check authentication status
+  // Check if user is authenticated
   static Future<bool> isAuthenticated() async {
     final token = await getToken();
-    final student = await getStudent();
-    return token != null && student != null && await isTokenValid();
+    return token != null && await isTokenValid();
   }
 }

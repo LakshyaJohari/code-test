@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- PostgreSQL schema for Attendance Management System
 
 CREATE TABLE IF NOT EXISTS departments (
     department_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS faculties (
         ON DELETE SET NULL
 );
 
--- ADDED FOR ADMIN
 CREATE TABLE IF NOT EXISTS admins (
     admin_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -61,7 +60,7 @@ CREATE TABLE IF NOT EXISTS students (
     roll_number VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
-    password_hash VARCHAR(255) NOT NULL, -- ADDED FOR STUDENT AUTHENTICATION
+    password_hash VARCHAR(255) NOT NULL,
     department_id UUID NOT NULL,
     current_year INT,
     section VARCHAR(10),
@@ -115,12 +114,18 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
 );
 
+-- New table for application settings (THIS IS THE ONE YOU NEED TO ENSURE IS THERE)
+CREATE TABLE IF NOT EXISTS app_settings (
+    setting_key VARCHAR(100) PRIMARY KEY NOT NULL,
+    setting_value TEXT NOT NULL,
+    description TEXT,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX idx_faculties_email ON faculties(email);
 CREATE INDEX idx_subjects_department ON subjects(department_id);
 CREATE INDEX idx_students_roll_number ON students(roll_number);
 CREATE INDEX idx_attendance_sessions_subject ON attendance_sessions(subject_id);
 CREATE INDEX idx_attendance_records_session_student ON attendance_records(session_id, student_id);
--- ADDED FOR ADMIN
 CREATE INDEX IF NOT EXISTS idx_admins_email ON admins(email);
--- ADDED FOR PERFORMANCE (Student attendance marking)
 CREATE INDEX IF NOT EXISTS idx_attendance_sessions_qrcode_status ON attendance_sessions(qr_code_data, status);

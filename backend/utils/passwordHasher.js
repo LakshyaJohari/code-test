@@ -1,4 +1,3 @@
-// backend/utils/passwordHasher.js
 const bcrypt = require('bcryptjs');
 
 const saltRounds = 10;
@@ -15,15 +14,23 @@ const hashPassword = async (password) => {
 };
 
 const comparePassword = async (plainPassword, hashedPassword) => {
+    // --- DEBUG LOGS START ---
+    console.log('--- Inside comparePassword function ---'); // DEBUG LOG
+    console.log('Plain password input (to bcrypt):', plainPassword); // DEBUG LOG
+    console.log('Hashed password input (to bcrypt):', hashedPassword); // DEBUG LOG
+    // --- DEBUG LOGS END ---
     try {
-        return await bcrypt.compare(plainPassword, hashedPassword);
+        const result = await bcrypt.compare(plainPassword, hashedPassword);
+        // --- DEBUG LOG ---
+        console.log('bcrypt.compare final result:', result); // DEBUG LOG
+        // --- DEBUG LOG END ---
+        return result;
     } catch (error) {
         console.error('Error comparing password:', error);
         throw new Error('Could not compare password');
     }
 };
 
-// Make sure these functions are EXPORTED correctly
 module.exports = {
     hashPassword,
     comparePassword

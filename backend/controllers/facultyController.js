@@ -1,6 +1,8 @@
-// Handles faculty profile management.
-const userModel = require('../models/userModel');
+// backend/controllers/facultyController.js
+
+const userModel = require('../models/userModel'); // This is your 'faculty' model
 const { hashPassword, comparePassword } = require('../utils/passwordHasher');
+const jwt = require('jsonwebtoken'); // Import jsonwebtoken for token generation
 
 // Gets the profile of the authenticated faculty.
 const getMyProfile = async (req, res) => {
@@ -10,7 +12,9 @@ const getMyProfile = async (req, res) => {
         if (!faculty) {
             return res.status(404).json({ message: 'Faculty profile not found.' });
         }
-        res.status(200).json(faculty);
+        // Exclude sensitive information like password_hash from the response
+        const { password_hash, ...facultyWithoutHash } = faculty;
+        res.status(200).json(facultyWithoutHash);
     } catch (error) {
         console.error('Error getting faculty profile:', error);
         res.status(500).json({ message: 'Internal server error.' });
@@ -61,8 +65,64 @@ const changeMyPassword = async (req, res) => {
     }
 };
 
+// NEW: Faculty Login Function
+const loginFaculty = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    try {
+        // Find faculty by email
+        const faculty = await userModel.findFacultyByEmail(email);
+
+        if (!faculty) {
+            // User not found
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+
+        // Compare provided password with hashed password from DB
+        const isMatch = await comparePassword(password, faculty.password_hash);
+
+        if (!isMatch) {
+            // Passwords do not match
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+
+        // Generate JWT
+        // IMPORTANT: Use a strong, environment-variable-stored secret in production
+        const JWT_SECRET = process.env.JWT_SECRET || 'a_very_secret_key_for_quickmark_faculty';
+
+        const token = jwt.sign(
+            { id: faculty.faculty_id, email: faculty.email, role: 'faculty' }, // Payload for the token
+            JWT_SECRET,
+            { expiresIn: '1h' } // Token expires in 1 hour
+        );
+
+        // Send token and faculty details (excluding password hash)
+        // Ensure you return all necessary faculty details for the frontend
+        res.status(200).json({
+            message: 'Login successful!',
+            token,
+            faculty: {
+                id: faculty.faculty_id,
+                name: faculty.name,
+                email: faculty.email,
+                department_id: faculty.department_id // Include this if needed on frontend
+            }
+        });
+
+    } catch (error) {
+        console.error('Error during faculty login:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+// Export all functions
 module.exports = {
     getMyProfile,
     updateMyProfile,
-    changeMyPassword
+    changeMyPassword,
+    loginFaculty // Make sure this is exported!
 };

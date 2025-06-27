@@ -1,4 +1,3 @@
-// Database operations for subjects.
 const pool = require('../config/db');
 
 // Fetches all subjects assigned to a specific faculty.
@@ -39,7 +38,25 @@ const isFacultyAssignedToSubject = async (facultyId, subjectId) => {
     }
 };
 
+// Get a subject by ID
+const getSubjectById = async (subjectId) => {
+    const query = `
+        SELECT s.*, d.name AS department_name
+        FROM subjects s
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE s.subject_id = $1;
+    `;
+    try {
+        const result = await pool.query(query, [subjectId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error fetching subject by ID:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
 module.exports = {
     getSubjectsByFacultyId,
-    isFacultyAssignedToSubject
+    isFacultyAssignedToSubject,
+    getSubjectById,
 };

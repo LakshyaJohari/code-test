@@ -1,5 +1,0 @@
-.exit
-db.channel.find({})
-db.channel.insertOne({name:"BroCode"})
-use youtube
-show dbs

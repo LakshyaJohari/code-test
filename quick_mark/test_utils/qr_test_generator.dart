@@ -85,7 +85,7 @@ void main() {
 
   samples.forEach((name, qrCode) {
     print('$name:');
-    print('$qrCode');
+    print(qrCode);
     print('');
   });
 

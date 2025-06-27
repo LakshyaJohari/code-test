@@ -3,11 +3,62 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 class QRScannerService {
   static MobileScannerController? _controller;
+  static bool _isInitialized = false;
 
-  // Initialize scanner
+  // Initialize scanner with optimized configuration
   static MobileScannerController getController() {
-    _controller ??= MobileScannerController();
+    if (_controller == null || !_isInitialized) {
+      _controller?.dispose(); // Dispose old controller if exists
+
+      _controller = MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        facing: CameraFacing.back,
+        torchEnabled: false,
+        returnImage: false, // Reduce memory usage and conflicts
+        formats: [
+          BarcodeFormat.qrCode,
+        ], // Only scan QR codes to reduce processing
+        detectionTimeoutMs:
+            1000, // Reduce detection frequency to prevent conflicts
+      );
+      _isInitialized = true;
+    }
     return _controller!;
+  }
+
+  // Properly dispose controller to prevent camera conflicts
+  static Future<void> disposeController() async {
+    if (_controller != null) {
+      try {
+        await _controller!.dispose();
+      } catch (e) {
+        print('Error disposing QR controller: $e');
+      }
+      _controller = null;
+      _isInitialized = false;
+    }
+  }
+
+  // Stop scanning without disposing
+  static Future<void> stopScanning() async {
+    if (_controller != null) {
+      try {
+        await _controller!.stop();
+      } catch (e) {
+        print('Error stopping QR scanner: $e');
+      }
+    }
+  }
+
+  // Start scanning
+  static Future<void> startScanning() async {
+    if (_controller != null) {
+      try {
+        await _controller!.start();
+      } catch (e) {
+        print('Error starting QR scanner: $e');
+      }
+    }
   }
 
   // Parse QR code data (JSON format from backend)
@@ -85,8 +136,7 @@ class QRScannerService {
   }
 
   // Dispose controller
-  static void dispose() {
-    _controller?.dispose();
-    _controller = null;
+  static Future<void> dispose() async {
+    await disposeController();
   }
 }

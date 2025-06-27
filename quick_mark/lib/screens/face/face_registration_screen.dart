@@ -15,8 +15,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
-  List<String> _capturedImages = [];
-  int _requiredImages = 3;
+  final List<String> _capturedImages = [];
+  final int _requiredImages = 3;
 
   @override
   void initState() {
@@ -85,6 +85,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         if (_capturedImages.length >= _requiredImages) {
           await _registerFace();
         } else {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(

@@ -21,7 +21,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       MaterialPageRoute(builder: (context) => const QRScannerPage()),
     );
 
-    if (qrValue != null && qrValue.isNotEmpty && mounted) {
+    if (qrValue != null && qrValue.isNotEmpty) {
       setState(() {
         _scannedQRData = qrValue;
       });
@@ -30,7 +30,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Future<void> _processQRCode(String qrData) async {
-    if (!mounted) return;
     setState(() {
       _isProcessing = true;
     });
@@ -39,7 +38,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       // Get the current student
       final student = await AuthService.getStudent();
       if (student == null) {
-        if (mounted) _showErrorDialog('Error', 'Please log in again.');
+        _showErrorDialog('Error', 'Please log in again.');
         return;
       }
 
@@ -49,8 +48,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         qrData: qrData,
         faceVerified: false, // Skip face verification for simple approach
       );
-
-      if (!mounted) return;
 
       if (result != null && result.success) {
         setState(() {
@@ -67,22 +64,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         );
       }
     } catch (e) {
-      if (!mounted) return;
       setState(() {
         _lastQRResult = 'Error: $e';
       });
       _showErrorDialog('Error', 'Failed to mark attendance: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      setState(() {
+        _isProcessing = false;
+      });
     }
   }
 
   void _showErrorDialog(String title, String message) {
-    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -99,7 +92,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _showSuccessDialog(String title, String message) {
-    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

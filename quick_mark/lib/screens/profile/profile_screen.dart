@@ -61,12 +61,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await AuthService.logout();
-              if (mounted) {
-                Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/login', (route) => false);
-              }
+              if (!mounted) return;
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
             },
             child: const Text('Logout'),
           ),
@@ -92,10 +90,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
               await FaceRecognitionService.removeFaceRegistration(_student!.id);
-              Navigator.of(context).pop();
+              if (!mounted) return;
+              navigator.pop();
               await _loadProfileData();
-              ScaffoldMessenger.of(context).showSnackBar(
+              if (!mounted) return;
+              messenger.showSnackBar(
                 const SnackBar(content: Text('Face data deleted successfully')),
               );
             },

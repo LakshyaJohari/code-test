@@ -48,12 +48,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await AuthService.logout();
-              if (mounted) {
-                Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/login', (route) => false);
-              }
+              if (!mounted) return;
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
             },
             child: const Text('Logout'),
           ),

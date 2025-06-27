@@ -90,14 +90,14 @@ const LoginPage = ({ onLogin }) => { // onLogin is correctly destructured here
     };
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-white p-8">
+        <div className="w-200 h-full flex flex-col items-center justify-center ">
             {/* Logo Section */}
             <div className="flex items-center justify-center h-20">
                 <GanttChartSquare className="h-8 w-8 text-primary" />
                 <h1 className="text-2xl font-bold ml-2 text-text-primary">QuickMark</h1>
             </div>
 
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md bg-sky-100 p-8 rounded-xl shadow-lg">
                 <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-text-primary">Faculty Login</h2>
                 </div>

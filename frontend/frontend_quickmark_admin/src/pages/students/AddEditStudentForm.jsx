@@ -8,13 +8,12 @@ export default function AddEditStudentForm({ student, onSave, onBack }) {
     rollNo: '',
     email: '',
     parentEmail: '',
-    year: '',
+    // --- FIX: Renamed 'year' to 'startYear' ---
+    startYear: '',
     department: ''
   });
 
   // This effect runs when the 'student' prop changes.
-  // If we are editing a student, it fills the form with their data.
-  // If we are adding a new student, it ensures the form is empty.
   useEffect(() => {
     if (student) {
       setFormData({
@@ -22,13 +21,14 @@ export default function AddEditStudentForm({ student, onSave, onBack }) {
         rollNo: student.rollNo || '',
         email: student.email || '',
         parentEmail: student.parentEmail || '',
-        year: student.year || '',
+        // --- FIX: Use 'startYear' from the student object ---
+        startYear: student.startYear || '',
         department: student.department || ''
       });
     } else {
       // Reset form for adding a new student
       setFormData({
-        name: '', rollNo: '', email: '', parentEmail: '', year: '', department: ''
+        name: '', rollNo: '', email: '', parentEmail: '', startYear: '', department: ''
       });
     }
   }, [student]);
@@ -42,8 +42,6 @@ export default function AddEditStudentForm({ student, onSave, onBack }) {
   // This function is called when the form is submitted
   const handleSubmit = (e) => {
     e.preventDefault();
-    // It calls the `onSave` function passed down from App.jsx,
-    // sending the student's ID (if editing) and the new form data.
     onSave(student ? student.id : null, formData);
   };
 
@@ -62,10 +60,10 @@ export default function AddEditStudentForm({ student, onSave, onBack }) {
                     <label className="block text-gray-700 text-sm font-bold mb-1" htmlFor="rollNo">Roll Number</label>
                     <input id="rollNo" type="text" value={formData.rollNo} onChange={handleChange} required className="shadow-sm border rounded w-full py-2 px-3"/>
                 </div>
-                {/* Year */}
+                {/* --- FIX: Updated label and input for startYear --- */}
                 <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-1" htmlFor="year">Year</label>
-                    <input id="year" type="number" placeholder="e.g., 2024" value={formData.year} onChange={handleChange} required className="shadow-sm border rounded w-full py-2 px-3"/>
+                    <label className="block text-gray-700 text-sm font-bold mb-1" htmlFor="startYear">Start Year</label>
+                    <input id="startYear" type="number" placeholder="e.g., 2023" value={formData.startYear} onChange={handleChange} required className="shadow-sm border rounded w-full py-2 px-3"/>
                 </div>
                 {/* Department */}
                 <div className="md:col-span-2">

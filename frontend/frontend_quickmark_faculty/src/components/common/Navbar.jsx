@@ -1,7 +1,23 @@
+// components/common/Navbar.js
+
 import React from 'react';
 import { Bell } from 'lucide-react';
 
-const Navbar = ({ user, onNavigate }) => {
+// 1. Accept 'currentRoute' as a prop
+const Navbar = ({ user, onNavigate, currentRoute }) => {
+
+  // 2. Create a handler that contains the toggle logic
+  const handleProfileClick = () => {
+    // 3. Check if the user is ALREADY on the profile page
+    if (currentRoute === '/profile') {
+      // If yes, navigate them back to the main dashboard
+      onNavigate('/dashboard');
+    } else {
+      // Otherwise, navigate them to the profile page
+      onNavigate('/profile');
+    }
+  };
+
   return (
     <header className="flex items-center justify-end h-20 bg-white shadow-sm px-4 sm:px-6 md:px-8">
       <div className="flex items-center space-x-4">
@@ -12,7 +28,8 @@ const Navbar = ({ user, onNavigate }) => {
 
         {/* Profile Avatar */}
         <button
-          onClick={() => onNavigate('/profile')}
+          // 4. Call the new handler function on click
+          onClick={handleProfileClick}
           className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary rounded-full"
         >
           <img
@@ -28,4 +45,3 @@ const Navbar = ({ user, onNavigate }) => {
 };
 
 export default Navbar;
-

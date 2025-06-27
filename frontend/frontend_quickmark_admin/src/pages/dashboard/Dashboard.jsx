@@ -1,143 +1,102 @@
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
-// import { useNavigate } from 'react-router-dom';
-// import InfoCard from './InfoCard';
-// import { Book, Users, AlertCircle, Briefcase, Building, Settings as SettingsIcon } from 'lucide-react';
+// src/pages/dashboard/Dashboard.jsx
+import React, { useState, useMemo } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// export default function Dashboard() {
-//   const [stats, setStats] = useState({
-//     subjects: 0,
-//     students: 0,
-//     defaulters: 0,
-//     faculty: 0,
-//     departments: 0,
-//   });
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState('');
-//   const navigate = useNavigate();
+const ITEMS_PER_PAGE = 5;
 
-//   const fetchDashboardStats = async () => {
-//     setLoading(true);
-//     setError('');
-//     try {
-//       const token = localStorage.getItem('adminToken');
-//       if (!token) {
-//         setError('Admin not authenticated.');
-//         setLoading(false);
-//         return;
-//       }
-//       const response = await axios.get('http://localhost:3700/api/admin/dashboard-stats', {
-//         headers: { Authorization: `Bearer ${token}` }
-//       });
-//       setStats({
-//         subjects: response.data.subjects,
-//         students: response.data.students,
-//         defaulters: response.data.defaulters,
-//         faculty: response.data.faculties,
-//         departments: response.data.departments,
-//       });
-//     } catch (err) {
-//       console.error('Error fetching dashboard stats:', err.response ? err.response.data : err.message);
-//       setError(err.response?.data?.message || 'Failed to load dashboard stats.');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+export default function Dashboard({ allStudents, allSubjects }) {
+  const [filters, setFilters] = useState({ year: "", department: "", faculty: "" });
+  const [currentPage, setCurrentPage] = useState(0);
 
-//   useEffect(() => {
-//     fetchDashboardStats();
-//   }, []);
+  const chartData = useMemo(() => {
+    if (!allStudents || !allSubjects) return [];
+    const defaultersBySubject = allSubjects.map((subject) => {
+      const studentsInSubject = allStudents.filter(
+        (student) =>
+          student.department === subject.department &&
+          student.year === subject.year
+      );
+      const defaulterCount = studentsInSubject.filter(
+        (student) => student.attendance < 75
+      ).length;
+      return { ...subject, defaulters: defaulterCount };
+    });
 
-//   const infoCards = [
-//     { title: 'Total Subjects', value: stats.subjects, navigate, linkTo: '/admin/subjects-list', IconComponent: Book },
-//     { title: 'Total Students', value: stats.students, navigate, linkTo: '/admin/students-list', IconComponent: Users },
-//     { title: 'Total Defaulters', value: stats.defaulters, navigate, linkTo: '/admin/defaulters', IconComponent: AlertCircle },
-//     { title: 'Total Faculty', value: stats.faculty, navigate, linkTo: '/admin/faculty-list', IconComponent: Briefcase },
-//     { title: 'Departments', value: stats.departments, navigate, linkTo: '/admin/departments', IconComponent: Building },
-//     { title: 'Settings', value: '', navigate, linkTo: '/admin/settings', IconComponent: SettingsIcon },
-//   ];
+    return defaultersBySubject.filter((subject) => {
+      const yearMatch = filters.year ? subject.year.toString() === filters.year : true;
+      const departmentMatch = filters.department ? subject.department === filters.department : true;
+      const facultyMatch = filters.faculty ? subject.faculty === filters.faculty : true;
+      return yearMatch && departmentMatch && facultyMatch;
+    });
+  }, [allStudents, allSubjects, filters]);
 
-//   if (loading) return <div className="text-center text-xl mt-10">Loading Dashboard...</div>;
-//   if (error) return <div className="text-center text-red-500 text-xl mt-10">Error: {error}</div>;
+  const paginatedData = useMemo(() => {
+    const startIndex = currentPage * ITEMS_PER_PAGE;
+    return chartData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [chartData, currentPage]);
 
-//   return (
-//     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-//       {infoCards.map((card) => (
-//         <InfoCard key={card.title} {...card} />
-//       ))}
-//     </div>
-//   );
-// }
-
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import InfoCard from './InfoCard';
-import { Book, Users, AlertCircle, Briefcase, Building, Settings as SettingsIcon } from 'lucide-react';
-
-export default function Dashboard() {
-  const [stats, setStats] = useState({
-    subjects: 0,
-    students: 0,
-    defaulters: 0,
-    faculty: 0,
-    departments: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-
-  const fetchDashboardStats = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        setError('Admin not authenticated.');
-        setLoading(false);
-        return;
-      }
-      const response = await axios.get('http://localhost:3700/api/admin/dashboard-stats', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log('Dashboard: Fetched Stats Data:', response.data); // ADDED LOG
-      setStats({
-        subjects: response.data.subjects,
-        students: response.data.students,
-        defaulters: response.data.defaulters,
-        faculty: response.data.faculties,
-        departments: response.data.departments,
-      });
-    } catch (err) {
-      console.error('Dashboard: Error fetching dashboard stats:', err.response ? err.response.data : err.message); // ADDED LOG
-      setError(err.response?.data?.message || 'Failed to load dashboard stats.');
-    } finally {
-      setLoading(false);
-    }
+  const totalPages = Math.ceil(chartData.length / ITEMS_PER_PAGE);
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(0);
   };
+  const goToNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
+  const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 0));
 
-  useEffect(() => {
-    console.log('Dashboard: Component mounted/re-rendered'); // ADDED LOG
-    fetchDashboardStats();
-  }, []);
-
-  const infoCards = [
-    { title: 'Total Subjects', value: stats.subjects, navigate, linkTo: '/admin/subjects-list', IconComponent: Book },
-    { title: 'Total Students', value: stats.students, navigate, linkTo: '/admin/students-list', IconComponent: Users },
-    { title: 'Total Defaulters', value: stats.defaulters, navigate, linkTo: '/admin/defaulters', IconComponent: AlertCircle },
-    { title: 'Total Faculty', value: stats.faculty, navigate, linkTo: '/admin/faculty-list', IconComponent: Briefcase },
-    { title: 'Departments', value: stats.departments, navigate, linkTo: '/admin/departments', IconComponent: Building },
-    { title: 'Settings', value: '', navigate, linkTo: '/admin/settings', IconComponent: SettingsIcon },
-  ];
-
-  if (loading) return <div className="text-center text-xl mt-10">Loading Dashboard...</div>;
-  if (error) return <div className="text-center text-red-500 text-xl mt-10">Error: {error}</div>;
+  const uniqueYears = useMemo(() => [...new Set(allSubjects.map((s) => s.year))], [allSubjects]);
+  const uniqueDepartments = useMemo(() => [...new Set(allSubjects.map((s) => s.department))], [allSubjects]);
+  const uniqueFaculty = useMemo(() => [...new Set(allSubjects.map((s) => s.faculty))], [allSubjects]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {infoCards.map((card) => (
-        <InfoCard key={card.title} {...card} />
-      ))}
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Defaulters Analysis by Subject</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <select name="year" value={filters.year} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
+          <option value="">All Years</option>
+          {/* FIX: Added a unique key using the value and index */}
+          {uniqueYears.map((y, index) => (<option key={`year-${index}`} value={y}>{y}</option>))}
+        </select>
+        <select name="department" value={filters.department} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
+          <option value="">All Departments</option>
+          {/* FIX: Added a unique key using the value and index */}
+          {uniqueDepartments.map((d, index) => (<option key={`dept-${index}`} value={d}>{d}</option>))}
+        </select>
+        <select name="faculty" value={filters.faculty} onChange={handleFilterChange} className="p-2 border rounded-md bg-gray-50">
+          <option value="">All Faculty</option>
+          {/* FIX: Added a unique key using the value and index */}
+          {uniqueFaculty.map((f, index) => (<option key={`faculty-${index}`} value={f}>{f}</option>))}
+        </select>
+      </div>
+
+      <div style={{ width: "100%", height: 400 }}>
+        <ResponsiveContainer>
+          <BarChart data={paginatedData} margin={{ top: 20, right: 30, left: 20, bottom: 75 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" type="category" angle={0} textAnchor="middle" interval={0} tick={{ fontSize: 12 }} />
+            <YAxis type="number" allowDecimals={false} dataKey="defaulters" />
+            <Tooltip />
+            <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }}/>
+            <Bar dataKey="defaulters" fill="#EF4444" name="Defaulters"/>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      
+      <div className="flex justify-end items-center mt-4">
+        <span className="text-sm text-gray-600 mr-4">Page {currentPage + 1} of {totalPages > 0 ? totalPages : 1}</span>
+        <button onClick={goToPrevPage} disabled={currentPage === 0} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronLeft size={20} /></button>
+        <button onClick={goToNextPage} disabled={currentPage >= totalPages - 1} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronRight size={20} /></button>
+      </div>
     </div>
   );
 }

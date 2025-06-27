@@ -1,9 +1,9 @@
 const { verifyToken } = require('../config/jwt');
 
+// Regular authentication middleware
 const authMiddleware = (req, res, next) => {
-    console.log('--- Executing authMiddleware (regular user) ---'); // DEBUG LOG
-    console.log('Auth Header:', req.header('Authorization') ? 'Present' : 'Missing'); // DEBUG LOG
-    // console.log('Auth Header Full Value:', req.header('Authorization')); // Optional DEBUG LOG
+    console.log('--- Executing authMiddleware (regular user) ---');
+    console.log('Auth Header:', req.header('Authorization') ? 'Present' : 'Missing');
 
     const authHeader = req.header('Authorization');
     if (!authHeader) {
@@ -23,8 +23,20 @@ const authMiddleware = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (error) {
-        res.status(401).json({ message: 'Token is not valid', error: error.message });
+        return res.status(401).json({ message: 'Token is not valid', error: error.message });
     }
 };
 
-module.exports = authMiddleware;
+// Middleware to allow only Admin or Faculty
+const requireAdminOrFaculty = (req, res, next) => {
+    const user = req.user;
+    if (user && (user.isAdmin || user.isFaculty)) {
+        return next();
+    }
+    return res.status(403).json({ message: 'Forbidden: Only admin or faculty can perform this action.' });
+};
+
+module.exports = {
+    authMiddleware,
+    requireAdminOrFaculty,
+};

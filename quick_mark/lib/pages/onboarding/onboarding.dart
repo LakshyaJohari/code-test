@@ -61,7 +61,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     return IntroductionScreen(
       pages: pages,
-      onDone: () => _onDone(),
+      onDone: _onDone,
+      done: const Text("Done", style: TextStyle(fontWeight: FontWeight.w600)),
+      next: const Text("Next", style: TextStyle(fontWeight: FontWeight.w600)),
       dotsDecorator: const DotsDecorator(
         size: Size(10.0, 10.0),
         color: Color(0xFFBDBDBD),

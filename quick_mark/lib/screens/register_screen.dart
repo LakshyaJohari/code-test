@@ -18,7 +18,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
 
   // For simplicity, using hardcoded values. In real app, you'd fetch these from API
-  String _selectedDepartmentId = "2c994d29-fb5d-4f1e-983f-0cca13a49fd2";
+  // TODO: Replace with dynamic fetching of departments
+  final String _selectedDepartmentId = "2c994d29-fb5d-4f1e-983f-0cca13a49fd2";
   int _selectedYear = 1;
   String _selectedSection = "A";
 

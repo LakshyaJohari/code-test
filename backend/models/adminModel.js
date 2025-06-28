@@ -1,1426 +1,31 @@
-// // // backend/models/adminModel.js
-
-// // const pool = require('../config/db');
-// // const { hashPassword } = require('../utils/passwordHasher');
-
-// // // --- ADMIN AUTH ---
-// // const findAdminByEmail = async (email) => {
-// //     const query = 'SELECT * FROM admins WHERE email = $1';
-// //     try {
-// //         const result = await pool.query(query, [email]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error finding admin by email:', error);
-// //         throw new Error('Database query failed');
-// //     }
-// // };
-
-// // const createAdmin = async (name, email, passwordHash) => {
-// //     const query = `
-// //         INSERT INTO admins (name, email, password_hash)
-// //         VALUES ($1, $2, $3)
-// //         RETURNING admin_id, name, email;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, email, passwordHash]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating admin:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // // --- DEPARTMENTS ---
-// // const getAllDepartments = async () => {
-// //     const query = 'SELECT * FROM departments ORDER BY name;';
-// //     try {
-// //         const result = await pool.query(query);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error getting all departments:', error);
-// //         throw new Error('Database query failed');
-// //     }
-// // };
-
-// // const createDepartment = async (name) => {
-// //     const query = 'INSERT INTO departments (name) VALUES ($1) RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [name]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating department:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // const updateDepartment = async (departmentId, name) => {
-// //     const query = `
-// //         UPDATE departments SET name = $1, updated_at = CURRENT_TIMESTAMP
-// //         WHERE department_id = $2 RETURNING *;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, departmentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating department:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteDepartment = async (departmentId) => {
-// //     const query = 'DELETE FROM departments WHERE department_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [departmentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting department:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // // --- FACULTY ---
-// // const getAllFaculties = async () => {
-// //     const query = 'SELECT f.faculty_id, f.name, f.email, d.name AS department_name FROM faculties f JOIN departments d ON f.department_id = d.department_id ORDER BY f.name;';
-// //     try {
-// //         const result = await pool.query(query);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error getting all faculties:', error);
-// //         throw new Error('Database query failed');
-// //     }
-// // };
-
-// // const createFacultyByAdmin = async (name, email, password, departmentId) => {
-// //     const hashedPassword = await hashPassword(password);
-// //     const query = `
-// //         INSERT INTO faculties (name, email, password_hash, department_id)
-// //         VALUES ($1, $2, $3, $4)
-// //         RETURNING faculty_id, name, email;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, email, hashedPassword, departmentId]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating faculty by admin:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // const updateFaculty = async (facultyId, name, email, departmentId) => {
-// //     const query = `
-// //         UPDATE faculties SET name = $1, email = $2, department_id = $3, updated_at = CURRENT_TIMESTAMP
-// //         WHERE faculty_id = $4 RETURNING faculty_id, name, email;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, email, departmentId, facultyId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating faculty:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteFaculty = async (facultyId) => {
-// //     const query = 'DELETE FROM faculties WHERE faculty_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [facultyId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting faculty:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // // --- STUDENTS ---
-// // const getAllStudents = async () => {
-// //     const query = 'SELECT s.student_id, s.roll_number, s.name, s.email, d.name AS department_name, s.current_year, s.section FROM students s JOIN departments d ON s.department_id = d.department_id ORDER BY s.roll_number;';
-// //     try {
-// //         const result = await pool.query(query);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error getting all students:', error);
-// //         throw new Error('Database query failed');
-// //     }
-// // };
-
-// // // const createStudent = async (rollNumber, name, email, departmentId, currentYear, section) => {
-// // //     // Corrected query: Changed ($5) to $5
-// // //     const query = `
-// // //         INSERT INTO students (roll_number, name, email, department_id, current_year, section)
-// // //         VALUES ($1, $2, $3, $4, $5, $6)
-// // //         RETURNING student_id, roll_number, name, email;
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section]);
-// // //         return result.rows[0];
-// // //     } catch (error) {
-// // //         console.error('Error creating student:', error);
-// // //         throw new Error('Database insertion failed');
-// // //     }
-// // // };
-
-// // const createStudent = async (rollNumber, name, email, departmentId, currentYear, section) => {
-// //     const defaultPassword = 'changeme123'; // or generate a random one
-// //     const hashedPassword = await hashPassword(defaultPassword);
-// //     const query = `
-// //         INSERT INTO students (roll_number, name, email, department_id, current_year, section, password_hash)
-// //         VALUES ($1, $2, $3, $4, $5, $6, $7)
-// //         RETURNING student_id, roll_number, name, email;
-// //     `;
-// //     const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, hashedPassword]);
-// //     return result.rows[0];
-// // };
-
-// // const updateStudent = async (studentId, rollNumber, name, email, departmentId, currentYear, section) => {
-// //     const query = `
-// //         UPDATE students SET roll_number = $1, name = $2, email = $3, department_id = $4, current_year = $5, section = $6, updated_at = CURRENT_TIMESTAMP
-// //         WHERE student_id = $7 RETURNING student_id, roll_number, name, email;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, studentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating student:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteStudent = async (studentId) => {
-// //     const query = 'DELETE FROM students WHERE student_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [studentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting student:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // // --- SUBJECTS ---
-// // const getAllSubjects = async () => {
-// //     // Select semester instead of batch_name
-// //     const query = 'SELECT s.subject_id, s.subject_name, s.year, s.section, s.semester, d.name AS department_name FROM subjects s JOIN departments d ON s.department_id = d.department_id ORDER BY s.subject_name;';
-// //     try {
-// //         const result = await pool.query(query);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error getting all subjects:', error);
-// //         throw new Error('Database query failed');
-// //     }
-// // };
-
-// // // Modified to accept semester instead of batchName
-// // const createSubject = async (subjectName, departmentId, year, section, semester) => {
-// //     const query = `
-// //         INSERT INTO subjects (subject_name, department_id, year, section, semester)
-// //         VALUES ($1, $2, $3, $4, $5)
-// //         RETURNING subject_id, subject_name, semester;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [subjectName, departmentId, year, section, semester]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating subject:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // // Modified to update semester instead of batchName
-// // const updateSubject = async (subjectId, subjectName, departmentId, year, section, semester) => {
-// //     const query = `
-// //         UPDATE subjects SET subject_name = $1, department_id = $2, year = $3, section = $4, semester = $5, updated_at = CURRENT_TIMESTAMP
-// //         WHERE subject_id = $6 RETURNING subject_id, subject_name, semester;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [subjectName, departmentId, year, section, semester, subjectId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating subject:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteSubject = async (subjectId) => {
-// //     const query = 'DELETE FROM subjects WHERE subject_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [subjectId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting subject:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // // --- APP SETTINGS (Admin View) ---
-// // const getAppSetting = async (key) => {
-// //     const query = 'SELECT setting_value FROM app_settings WHERE setting_key = $1;';
-// //     try {
-// //         const result = await pool.query(query, [key]);
-// //         return result.rows[0]?.setting_value || null;
-// //     } catch (error) {
-// //         console.error('Error getting app setting:', error);
-// //         throw new Error('Database query failed for app setting');
-// //     }
-// // };
-
-// // const updateAppSetting = async (key, value, description = null) => {
-// //     const query = `
-// //         INSERT INTO app_settings (setting_key, setting_value, description)
-// //         VALUES ($1, $2, $3)
-// //         ON CONFLICT (setting_key) DO UPDATE SET
-// //             setting_value = EXCLUDED.setting_value,
-// //             description = EXCLUDED.description,
-// //             last_updated = CURRENT_TIMESTAMP
-// //         RETURNING *;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [key, value, description]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error updating app setting:', error);
-// //         throw new Error('Database operation failed for app setting');
-// //     }
-// // };
-
-// // // --- BACKUP DATA ---
-// // const getAllTableData = async (tableName) => {
-// //     try {
-// //         const result = await pool.query(`SELECT * FROM ${tableName}`);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error(`Error getting data from ${tableName}:`, error);
-// //         throw new Error(`Failed to retrieve data for ${tableName}.`);
-// //     }
-// // };
-
-// // // --- ATTENDANCE SHEET DATA ---
-// // const getStudentsForAttendanceSheet = async () => {
-// //     const query = 'SELECT name, roll_number FROM students ORDER BY roll_number;';
-// //     try {
-// //         const result = await pool.query(query);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error getting students for attendance sheet:', error);
-// //         throw new Error('Database query failed for attendance sheet.');
-// //     }
-// // };
-
-// // const countEntities = async (tableName) => {
-// //     const query = `SELECT COUNT(*) FROM ${tableName};`;
-// //     try {
-// //         const result = await pool.query(query);
-// //         return parseInt(result.rows[0].count);
-// //     } catch (error) {
-// //         console.error(`Error counting entities in ${tableName}:`, error);
-// //         throw new Error(`Database query failed for count of ${tableName}`);
-// //     }
-// // };
-
-// // const countDefaulters = async () => {
-// //     // This was a placeholder; actual logic will be in getDefaultersList
-// //     return 0; // Return 0 or handle as needed, will be replaced.
-// // };
-
-// // // --- NEW: DEFAULTERS LIST (LOW ATTENDANCE) ---
-// // const getDefaultersList = async (attendanceThreshold) => {
-// //     const query = `
-// //         WITH StudentAttendance AS (
-// //             SELECT
-// //                 s.student_id,
-// //                 s.roll_number,
-// //                 s.name AS student_name,
-// //                 d.name AS department_name,
-// //                 s.current_year,
-// //                 s.section,
-// //                 -- Count total sessions for subjects student is enrolled in
-// //                 COUNT(DISTINCT asess.session_id) AS total_sessions,
-// //                 -- Count present records for the student
-// //                 COUNT(CASE WHEN ar.status = 'present' THEN ar.record_id END) AS sessions_present
-// //             FROM
-// //                 students s
-// //             JOIN
-// //                 departments d ON s.department_id = d.department_id
-// //             JOIN
-// //                 enrollments e ON s.student_id = e.student_id
-// //             JOIN
-// //                 attendance_sessions asess ON e.subject_id = asess.subject_id
-// //             LEFT JOIN
-// //                 attendance_records ar ON asess.session_id = ar.session_id AND s.student_id = ar.student_id
-// //             WHERE
-// //                 asess.status = 'completed' -- Only consider completed sessions for attendance calculation
-// //                 AND (ar.status = 'present' OR ar.status IS NULL OR ar.status IN ('absent', 'late')) -- Include all records to count total sessions correctly, but only 'present' for attended.
-// //             GROUP BY
-// //                 s.student_id, s.roll_number, s.name, d.name, s.current_year, s.section
-// //         )
-// //         SELECT
-// //             student_id,
-// //             roll_number,
-// //             student_name,
-// //             department_name,
-// //             current_year,
-// //             section,
-// //             total_sessions,
-// //             sessions_present,
-// //             -- Calculate attendance percentage
-// //             -- Handle division by zero using NULLIF
-// //             CASE
-// //                 WHEN total_sessions = 0 THEN 0.0 -- If no sessions, attendance is 0%
-// //                 ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-// //             END AS attendance_percentage
-// //         FROM
-// //             StudentAttendance
-// //         WHERE
-// //             -- Filter by the provided threshold
-// //             CASE
-// //                 WHEN total_sessions = 0 THEN 0.0 -- Students with no sessions are also defaulters if threshold is > 0
-// //                 ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-// //             END < $1
-// //         ORDER BY
-// //             attendance_percentage ASC;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [attendanceThreshold]);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error fetching defaulters list:', error);
-// //         throw new Error('Database query failed for defaulters list');
-// //     }
-// // };
-
-
-// // module.exports = {
-// //     findAdminByEmail,
-// //     createAdmin,
-// //     getAllDepartments,
-// //     createDepartment,
-// //     updateDepartment,
-// //     deleteDepartment,
-// //     getAllFaculties,
-// //     createFacultyByAdmin,
-// //     updateFaculty,
-// //     deleteFaculty,
-// //     getAllStudents,
-// //     createStudent,
-// //     updateStudent,
-// //     deleteStudent,
-// //     getAllSubjects,
-// //     createSubject,
-// //     updateSubject,
-// //     deleteSubject,
-// //     getAppSetting,
-// //     updateAppSetting,
-// //     getAllTableData,
-// //     getStudentsForAttendanceSheet,
-// //     countEntities,
-// //     countDefaulters, // Keep for compatibility if used elsewhere, though now a placeholder
-// //     getDefaultersList // EXPORT THE NEW FUNCTION
-// // };
-
-// // backend/models/adminModel.js
-// // const pool = require('../config/db');
-// // const { hashPassword } = require('../utils/passwordHasher');
-
-// // const findAdminByEmail = async (email) => {
-// //     const query = 'SELECT * FROM admins WHERE email = $1';
-// //     try {
-// //         const result = await pool.query(query, [email]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error finding admin by email:', error);
-// //         throw new Error('Database query failed');
-// //     }
-// // };
-
-// // const createAdmin = async (name, email, passwordHash) => {
-// //     const query = `
-// //         INSERT INTO admins (name, email, password_hash)
-// //         VALUES ($1, $2, $3)
-// //         RETURNING admin_id, name, email;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, email, passwordHash]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating admin:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // const getAllDepartments = async (page = 1, limit = 10) => { // PAGINATION LOGIC
-// //     const offset = (page - 1) * limit;
-// //     const countQuery = 'SELECT COUNT(*) FROM departments;';
-// //     const dataQuery = `
-// //         SELECT * FROM departments ORDER BY name LIMIT $1 OFFSET $2;
-// //     `;
-// //     try {
-// //         const countResult = await pool.query(countQuery);
-// //         const totalCount = parseInt(countResult.rows[0].count);
-// //         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-// //         return {
-// //             departments: dataResult.rows,
-// //             totalItems: totalCount,
-// //             totalPages: Math.ceil(totalCount / limit),
-// //             currentPage: page
-// //         };
-// //     } catch (error) {
-// //         console.error('Error getting all departments with pagination:', error);
-// //         throw new Error('Database query failed for departments pagination');
-// //     }
-// // };
-
-// // const createDepartment = async (name) => {
-// //     const query = 'INSERT INTO departments (name) VALUES ($1) RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [name]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating department:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // const updateDepartment = async (departmentId, name) => {
-// //     const query = `
-// //         UPDATE departments SET name = $1, updated_at = CURRENT_TIMESTAMP
-// //         WHERE department_id = $2 RETURNING *;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, departmentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating department:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteDepartment = async (departmentId) => {
-// //     const query = 'DELETE FROM departments WHERE department_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [departmentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting department:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // const getAllFaculties = async (page = 1, limit = 10) => {
-// //     const offset = (page - 1) * limit;
-// //     const countQuery = 'SELECT COUNT(*) FROM faculties;';
-// //     const dataQuery = `
-// //         SELECT 
-// //             f.faculty_id, 
-// //             f.name, 
-// //             f.email, 
-// //             d.name AS department_name 
-// //         FROM faculties f 
-// //         JOIN departments d ON f.department_id = d.department_id 
-// //         ORDER BY f.name 
-// //         LIMIT $1 OFFSET $2;
-// //     `;
-// //     try {
-// //         const countResult = await pool.query(countQuery);
-// //         const totalCount = parseInt(countResult.rows[0].count);
-// //         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-// //         return {
-// //             faculty: dataResult.rows,
-// //             totalItems: totalCount,
-// //             totalPages: Math.ceil(totalCount / limit),
-// //             currentPage: page
-// //         };
-// //     } catch (error) {
-// //         console.error('Error getting all faculties with pagination:', error);
-// //         throw new Error('Database query failed for faculties pagination');
-// //     }
-// // };
-
-// // const createFacultyByAdmin = async (name, email, password, departmentId) => {
-// //     const hashedPassword = await hashPassword(password);
-// //     const query = `
-// //         INSERT INTO faculties (name, email, password_hash, department_id)
-// //         VALUES ($1, $2, $3, $4)
-// //         RETURNING faculty_id, name, email;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, email, hashedPassword, departmentId]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating faculty by admin:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // const updateFaculty = async (facultyId, name, email, departmentId) => {
-// //     const query = `
-// //         UPDATE faculties SET name = $1, email = $2, department_id = $3, updated_at = CURRENT_TIMESTAMP
-// //         WHERE faculty_id = $4 RETURNING faculty_id, name, email;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [name, email, departmentId, facultyId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating faculty:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteFaculty = async (facultyId) => {
-// //     const query = 'DELETE FROM faculties WHERE faculty_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [facultyId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting faculty:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // const getAllStudents = async (page = 1, limit = 10) => {
-// //     const offset = (page - 1) * limit;
-// //     const countQuery = 'SELECT COUNT(*) FROM students;';
-// //     const dataQuery = `
-// //             SELECT 
-// //                 s.student_id, 
-// //                 s.roll_number, 
-// //                 s.name, 
-// //                 s.email, 
-// //                 d.name AS department_name, 
-// //                 s.current_year, 
-// //                 s.section 
-// //             FROM students s 
-// //             JOIN departments d ON s.department_id = d.department_id 
-// //             ORDER BY s.roll_number 
-// //             LIMIT $1 OFFSET $2;
-// //         `;
-// //     try {
-// //         const countResult = await pool.query(countQuery);
-// //         const totalCount = parseInt(countResult.rows[0].count);
-// //         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-// //         return {
-// //             students: dataResult.rows,
-// //             totalItems: totalCount,
-// //             totalPages: Math.ceil(totalCount / limit),
-// //             currentPage: page
-// //         };
-// //     } catch (error) {
-// //         console.error('Error getting all students with pagination:', error);
-// //         throw new Error('Database query failed for students pagination');
-// //     }
-// // };
-
-// // const createStudent = async (rollNumber, name, email, departmentId, currentYear, section) => {
-// //     const defaultPassword = 'changeme123'; // or generate a random one
-// //     const hashedPassword = await hashPassword(defaultPassword);
-// //     const query = `
-// //             INSERT INTO students (roll_number, name, email, department_id, current_year, section, password_hash)
-// //             VALUES ($1, $2, $3, $4, $5, $6, $7)
-// //             RETURNING student_id, roll_number, name, email;
-// //         `;
-// //     const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, hashedPassword]);
-// //     return result.rows[0];
-// // };
-
-// // const updateStudent = async (studentId, rollNumber, name, email, departmentId, currentYear, section) => {
-// //     const query = `
-// //             UPDATE students SET roll_number = $1, name = $2, email = $3, department_id = $4, current_year = $5, section = $6, updated_at = CURRENT_TIMESTAMP
-// //             WHERE student_id = $7 RETURNING student_id, roll_number, name, email;
-// //         `;
-// //     try {
-// //         const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, studentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating student:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteStudent = async (studentId) => {
-// //     const query = 'DELETE FROM students WHERE student_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [studentId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting student:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // const getAllSubjects = async (page = 1, limit = 10) => {
-// //     const offset = (page - 1) * limit;
-// //     const countQuery = 'SELECT COUNT(*) FROM subjects;';
-// //     const dataQuery = `
-// //             SELECT 
-// //                 s.subject_id, 
-// //                 s.subject_name, 
-// //                 s.year, 
-// //                 s.section, 
-// //                 s.semester, 
-// //                 d.name AS department_name 
-// //             FROM subjects s 
-// //             JOIN departments d ON s.department_id = d.department_id 
-// //             ORDER BY s.subject_name 
-// //             LIMIT $1 OFFSET $2;
-// //         `;
-// //     try {
-// //         const countResult = await pool.query(countQuery);
-// //         const totalCount = parseInt(countResult.rows[0].count);
-// //         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-// //         return {
-// //             subjects: dataResult.rows,
-// //             totalItems: totalCount,
-// //             totalPages: Math.ceil(totalCount / limit),
-// //             currentPage: page
-// //         };
-// //     } catch (error) {
-// //         console.error('Error getting all subjects with pagination:', error);
-// //         throw new Error('Database query failed for subjects pagination');
-// //     }
-// // };
-
-// // const createSubject = async (subjectName, departmentId, year, section, semester) => {
-// //     const query = `
-// //             INSERT INTO subjects (subject_name, department_id, year, section, semester)
-// //             VALUES ($1, $2, $3, $4, $5)
-// //             RETURNING subject_id, subject_name, semester;
-// //         `;
-// //     try {
-// //         const result = await pool.query(query, [subjectName, departmentId, year, section, semester]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating subject:', error);
-// //         throw new Error('Database insertion failed');
-// //     }
-// // };
-
-// // const updateSubject = async (subjectId, subjectName, departmentId, year, section, semester) => {
-// //     const query = `
-// //             UPDATE subjects SET subject_name = $1, department_id = $2, year = $3, section = $4, semester = $5, updated_at = CURRENT_TIMESTAMP
-// //             WHERE subject_id = $6 RETURNING subject_id, subject_name, semester;
-// //         `;
-// //     try {
-// //         const result = await pool.query(query, [subjectName, departmentId, year, section, semester, subjectId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error updating subject:', error);
-// //         throw new Error('Database update failed');
-// //     }
-// // };
-
-// // const deleteSubject = async (subjectId) => {
-// //     const query = 'DELETE FROM subjects WHERE subject_id = $1 RETURNING *;';
-// //     try {
-// //         const result = await pool.query(query, [subjectId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error deleting subject:', error);
-// //         throw new Error('Database deletion failed');
-// //     }
-// // };
-
-// // const getAppSetting = async (key) => {
-// //     const query = 'SELECT setting_value FROM app_settings WHERE setting_key = $1;';
-// //     try {
-// //         const result = await pool.query(query, [key]);
-// //         return result.rows[0]?.setting_value || null;
-// //     } catch (error) {
-// //         console.error('Error getting app setting:', error);
-// //         throw new Error('Database query failed for app setting');
-// //     }
-// // };
-
-// // const updateAppSetting = async (key, value, description = null) => {
-// //     const query = `
-// //             INSERT INTO app_settings (setting_key, setting_value, description)
-// //             VALUES ($1, $2, $3)
-// //             ON CONFLICT (setting_key) DO UPDATE SET
-// //                 setting_value = EXCLUDED.setting_value,
-// //                 description = EXCLUDED.description,
-// //                 last_updated = CURRENT_TIMESTAMP
-// //             RETURNING *;
-// //         `;
-// //     try {
-// //         const result = await pool.query(query, [key, value, description]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error updating app setting:', error);
-// //         throw new Error('Database operation failed for app setting');
-// //     }
-// // };
-
-// // const getAllTableData = async (tableName) => {
-// //     try {
-// //         const result = await pool.query(`SELECT * FROM ${tableName}`);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error(`Error getting data from ${tableName}:`, error);
-// //         throw new Error(`Failed to retrieve data for ${tableName}.`);
-// //     }
-// // };
-
-// // const getStudentsForAttendanceSheet = async () => {
-// //     const query = 'SELECT name, roll_number FROM students ORDER BY roll_number;';
-// //     try {
-// //         const result = await pool.query(query);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error getting students for attendance sheet:', error);
-// //         throw new Error('Database query failed for attendance sheet.');
-// //     }
-// // };
-
-// // const countEntities = async (tableName) => {
-// //     const query = `SELECT COUNT(*) FROM ${tableName};`;
-// //     try {
-// //         const result = await pool.query(query);
-// //         return parseInt(result.rows[0].count);
-// //     } catch (error) {
-// //         console.error(`Error counting entities in ${tableName}:`, error);
-// //         throw new Error(`Database query failed for count of ${tableName}`);
-// //     }
-// // };
-
-// // const countDefaulters = async () => {
-// //     return 2; // Placeholder, as real logic is complex.
-// // };
-
-// // const getDefaultersList = async (attendanceThreshold, page = 1, limit = 10) => {
-// //     const offset = (page - 1) * limit;
-// //     const countQuery = `
-// //             WITH StudentAttendance AS (
-// //                 SELECT
-// //                     s.student_id,
-// //                     s.roll_number,
-// //                     COUNT(DISTINCT asess.session_id) AS total_sessions,
-// //                     COUNT(CASE WHEN ar.status = 'present' THEN ar.record_id END) AS sessions_present
-// //                 FROM
-// //                     students s
-// //                 JOIN
-// //                     enrollments e ON s.student_id = e.student_id
-// //                 JOIN
-// //                     attendance_sessions asess ON e.subject_id = asess.subject_id
-// //                 LEFT JOIN
-// //                     attendance_records ar ON asess.session_id = ar.session_id AND s.student_id = ar.student_id
-// //                 WHERE
-// //                     asess.status = 'completed'
-// //                     AND (ar.status = 'present' OR ar.status IS NULL OR ar.status IN ('absent', 'late'))
-// //                 GROUP BY
-// //                     s.student_id, s.roll_number
-// //             )
-// //             SELECT COUNT(*) FROM StudentAttendance WHERE
-// //                 CASE
-// //                     WHEN total_sessions = 0 THEN 0.0
-// //                     ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-// //                 END < $1;
-// //         `;
-// //     const dataQuery = `
-// //             WITH StudentAttendance AS (
-// //                 SELECT
-// //                     s.student_id,
-// //                     s.roll_number,
-// //                     s.name AS student_name,
-// //                     d.name AS department_name,
-// //                     s.current_year,
-// //                     s.section,
-// //                     COUNT(DISTINCT asess.session_id) AS total_sessions,
-// //                     COUNT(CASE WHEN ar.status = 'present' THEN ar.record_id END) AS sessions_present
-// //                 FROM
-// //                     students s
-// //                 JOIN
-// //                     departments d ON s.department_id = d.department_id
-// //                 JOIN
-// //                     enrollments e ON s.student_id = e.student_id
-// //                 JOIN
-// //                     attendance_sessions asess ON e.subject_id = asess.subject_id
-// //                 LEFT JOIN
-// //                     attendance_records ar ON asess.session_id = ar.session_id AND s.student_id = ar.student_id
-// //                 WHERE
-// //                     asess.status = 'completed'
-// //                     AND (ar.status = 'present' OR ar.status IS NULL OR ar.status IN ('absent', 'late'))
-// //                 GROUP BY
-// //                     s.student_id, s.roll_number, s.name, d.name, s.current_year, s.section
-// //             )
-// //             SELECT
-// //                 student_id,
-// //                 roll_number,
-// //                 student_name,
-// //                 department_name,
-// //                 current_year,
-// //                 section,
-// //                 total_sessions,
-// //                 sessions_present,
-// //                 CASE
-// //                     WHEN total_sessions = 0 THEN 0.0
-// //                     ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-// //                 END AS attendance_percentage
-// //             FROM
-// //                 StudentAttendance
-// //             WHERE
-// //                 CASE
-// //                     WHEN total_sessions = 0 THEN 0.0
-// //                     ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-// //                 END < $1
-// //             ORDER BY
-// //                 attendance_percentage ASC
-// //             LIMIT $2 OFFSET $3;
-// //         `;
-// //     try {
-// //         const result = await pool.query(dataQuery, [attendanceThreshold, limit, offset]);
-// //         const countResult = await pool.query(countQuery, [attendanceThreshold]);
-// //         const totalCount = parseInt(countResult.rows[0].count);
-
-// //         return {
-// //             defaulters: result.rows,
-// //             totalItems: totalCount,
-// //             totalPages: Math.ceil(totalCount / limit),
-// //             currentPage: page
-// //         };
-// //     } catch (error) {
-// //         console.error('Error fetching defaulters list with pagination:', error);
-// //         throw new Error('Database query failed for defaulters list');
-// //     }
-// // };
-
-// // module.exports = {
-// //     findAdminByEmail,
-// //     createAdmin,
-// //     getAllDepartments,
-// //     createDepartment,
-// //     updateDepartment,
-// //     deleteDepartment,
-// //     getAllFaculties,
-// //     createFacultyByAdmin,
-// //     updateFaculty,
-// //     deleteFaculty,
-// //     getAllStudents,
-// //     createStudent,
-// //     updateStudent,
-// //     deleteStudent,
-// //     getAllSubjects,
-// //     createSubject,
-// //     updateSubject,
-// //     deleteSubject,
-// //     getAppSetting,
-// //     updateAppSetting,
-// //     getAllTableData,
-// //     getStudentsForAttendanceSheet,
-// //     countEntities,
-// //     countDefaulters, // Keep for compatibility if used elsewhere
-// //     getDefaultersList // EXPORTED
-// // };
-
-// const pool = require('../config/db');
-// const { hashPassword } = require('../utils/passwordHasher');
-
-// const findAdminByEmail = async (email) => {
-//     const query = 'SELECT * FROM admins WHERE email = $1';
-//     try {
-//         const result = await pool.query(query, [email]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error finding admin by email:', error);
-//         throw new Error('Database query failed');
-//     }
-// };
-
-// const createAdmin = async (name, email, passwordHash) => {
-//     const query = `
-//         INSERT INTO admins (name, email, password_hash)
-//         VALUES ($1, $2, $3)
-//         RETURNING admin_id, name, email;
-//     `;
-//     try {
-//         const result = await pool.query(query, [name, email, passwordHash]);
-//         return result.rows[0];
-//     } catch (error) {
-//         console.error('Error creating admin:', error);
-//         throw new Error('Database insertion failed');
-//     }
-// };
-
-// const getAllDepartments = async (page = 1, limit = 10) => { // PAGINATION LOGIC
-//     const offset = (page - 1) * limit;
-//     const countQuery = 'SELECT COUNT(*) FROM departments;';
-//     const dataQuery = `
-//         SELECT * FROM departments ORDER BY name LIMIT $1 OFFSET $2;
-//     `;
-//     try {
-//         const countResult = await pool.query(countQuery);
-//         const totalCount = parseInt(countResult.rows[0].count);
-//         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-//         return {
-//             departments: dataResult.rows,
-//             totalItems: totalCount,
-//             totalPages: Math.ceil(totalCount / limit),
-//             currentPage: page
-//         };
-//     } catch (error) {
-//         console.error('Error getting all departments with pagination:', error);
-//         throw new Error('Database query failed for departments pagination');
-//     }
-// };
-
-// const createDepartment = async (name) => {
-//     const query = 'INSERT INTO departments (name) VALUES ($1) RETURNING *;';
-//     try {
-//         const result = await pool.query(query, [name]);
-//         return result.rows[0];
-//     } catch (error) {
-//         console.error('Error creating department:', error);
-//         throw new Error('Database insertion failed');
-//     }
-// };
-
-// const updateDepartment = async (departmentId, name) => {
-//     const query = `
-//         UPDATE departments SET name = $1, updated_at = CURRENT_TIMESTAMP
-//         WHERE department_id = $2 RETURNING *;
-//     `;
-//     try {
-//         const result = await pool.query(query, [name, departmentId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error updating department:', error);
-//         throw new Error('Database update failed');
-//     }
-// };
-
-// const deleteDepartment = async (departmentId) => {
-//     const query = 'DELETE FROM departments WHERE department_id = $1 RETURNING *;';
-//     try {
-//         const result = await pool.query(query, [departmentId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error deleting department:', error);
-//         throw new Error('Database deletion failed');
-//     }
-// };
-
-// const getAllFaculties = async (page = 1, limit = 10) => {
-//     const offset = (page - 1) * limit;
-//     const countQuery = 'SELECT COUNT(*) FROM faculties;';
-//     const dataQuery = `
-//             SELECT 
-//                 f.faculty_id, 
-//                 f.name, 
-//                 f.email, 
-//                 d.name AS department_name 
-//             FROM faculties f 
-//             JOIN departments d ON f.department_id = d.department_id 
-//             ORDER BY f.name 
-//             LIMIT $1 OFFSET $2;
-//         `;
-//     try {
-//         const countResult = await pool.query(countQuery);
-//         const totalCount = parseInt(countResult.rows[0].count);
-//         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-//         return {
-//             faculty: dataResult.rows,
-//             totalItems: totalCount,
-//             totalPages: Math.ceil(totalCount / limit),
-//             currentPage: page
-//         };
-//     } catch (error) {
-//         console.error('Error getting all faculties with pagination:', error);
-//         throw new Error('Database query failed for faculties pagination');
-//     }
-// };
-
-// const createFacultyByAdmin = async (name, email, password, departmentId) => {
-//     const hashedPassword = await hashPassword(password);
-//     const query = `
-//             INSERT INTO faculties (name, email, password_hash, department_id)
-//             VALUES ($1, $2, $3, $4)
-//             RETURNING faculty_id, name, email;
-//         `;
-//     try {
-//         const result = await pool.query(query, [name, email, hashedPassword, departmentId]);
-//         return result.rows[0];
-//     } catch (error) {
-//         console.error('Error creating faculty by admin:', error);
-//         throw new Error('Database insertion failed');
-//     }
-// };
-
-// const updateFaculty = async (facultyId, name, email, departmentId) => {
-//     const query = `
-//             UPDATE faculties SET name = $1, email = $2, department_id = $3, updated_at = CURRENT_TIMESTAMP
-//             WHERE faculty_id = $4 RETURNING faculty_id, name, email;
-//         `;
-//     try {
-//         const result = await pool.query(query, [name, email, departmentId, facultyId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error updating faculty:', error);
-//         throw new Error('Database update failed');
-//     }
-// };
-
-// const deleteFaculty = async (facultyId) => {
-//     const query = 'DELETE FROM faculties WHERE faculty_id = $1 RETURNING *;';
-//     try {
-//         const result = await pool.query(query, [facultyId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error deleting faculty:', error);
-//         throw new Error('Database deletion failed');
-//     }
-// };
-
-// const getAllStudents = async (page = 1, limit = 10) => {
-//     const offset = (page - 1) * limit;
-//     const countQuery = 'SELECT COUNT(*) FROM students;';
-//     const dataQuery = `
-//             SELECT 
-//                 s.student_id, 
-//                 s.roll_number, 
-//                 s.name, 
-//                 s.email, 
-//                 d.name AS department_name, 
-//                 s.current_year, 
-//                 s.section 
-//             FROM students s 
-//             JOIN departments d ON s.department_id = d.department_id 
-//             ORDER BY s.roll_number 
-//             LIMIT $1 OFFSET $2;
-//         `;
-//     try {
-//         const countResult = await pool.query(countQuery);
-//         const totalCount = parseInt(countResult.rows[0].count);
-//         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-//         return {
-//             students: dataResult.rows,
-//             totalItems: totalCount,
-//             totalPages: Math.ceil(totalCount / limit),
-//             currentPage: page
-//         };
-//     } catch (error) {
-//         console.error('Error getting all students with pagination:', error);
-//         throw new Error('Database query failed for students pagination');
-//     }
-// };
-
-// const createStudent = async (rollNumber, name, email, departmentId, currentYear, section) => {
-//     const defaultPassword = 'changeme123'; // or generate a random one
-//     const hashedPassword = await hashPassword(defaultPassword);
-//     const query = `
-//             INSERT INTO students (roll_number, name, email, department_id, current_year, section, password_hash)
-//             VALUES ($1, $2, $3, $4, $5, $6, $7)
-//             RETURNING student_id, roll_number, name, email;
-//         `;
-//     const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, hashedPassword]);
-//     return result.rows[0];
-// };
-
-// const updateStudent = async (studentId, rollNumber, name, email, departmentId, currentYear, section) => {
-//     const query = `
-//             UPDATE students SET roll_number = $1, name = $2, email = $3, department_id = $4, current_year = $5, section = $6, updated_at = CURRENT_TIMESTAMP
-//             WHERE student_id = $7 RETURNING student_id, roll_number, name, email;
-//         `;
-//     try {
-//         const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, studentId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error updating student:', error);
-//         throw new Error('Database update failed');
-//     }
-// };
-
-// const deleteStudent = async (studentId) => {
-//     const query = 'DELETE FROM students WHERE student_id = $1 RETURNING *;';
-//     try {
-//         const result = await pool.query(query, [studentId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error deleting student:', error);
-//         throw new Error('Database deletion failed');
-//     }
-// };
-
-// const getAllSubjects = async (page = 1, limit = 10) => {
-//     const offset = (page - 1) * limit;
-//     const countQuery = 'SELECT COUNT(*) FROM subjects;';
-//     const dataQuery = `
-//             SELECT 
-//                 s.subject_id, 
-//                 s.subject_name, 
-//                 s.year, 
-//                 s.section, 
-//                 s.semester, 
-//                 d.name AS department_name 
-//             FROM subjects s 
-//             JOIN departments d ON s.department_id = d.department_id 
-//             ORDER BY s.subject_name 
-//             LIMIT $1 OFFSET $2;
-//         `;
-//     try {
-//         const countResult = await pool.query(countQuery);
-//         const totalCount = parseInt(countResult.rows[0].count);
-//         const dataResult = await pool.query(dataQuery, [limit, offset]);
-        
-//         return {
-//             subjects: dataResult.rows,
-//             totalItems: totalCount,
-//             totalPages: Math.ceil(totalCount / limit),
-//             currentPage: page
-//         };
-//     } catch (error) {
-//         console.error('Error getting all subjects with pagination:', error);
-//         throw new Error('Database query failed for subjects pagination');
-//     }
-// };
-
-// const createSubject = async (subjectName, departmentId, year, section, semester) => {
-//     const query = `
-//             INSERT INTO subjects (subject_name, department_id, year, section, semester)
-//             VALUES ($1, $2, $3, $4, $5)
-//             RETURNING subject_id, subject_name, semester;
-//         `;
-//     try {
-//         const result = await pool.query(query, [subjectName, departmentId, year, section, semester]);
-//         return result.rows[0];
-//     } catch (error) {
-//         console.error('Error creating subject:', error);
-//         throw new Error('Database insertion failed');
-//     }
-// };
-
-// const updateSubject = async (subjectId, subjectName, departmentId, year, section, semester) => {
-//     const query = `
-//             UPDATE subjects SET subject_name = $1, department_id = $2, year = $3, section = $4, semester = $5, updated_at = CURRENT_TIMESTAMP
-//             WHERE subject_id = $6 RETURNING subject_id, subject_name, semester;
-//         `;
-//     try {
-//         const result = await pool.query(query, [subjectName, departmentId, year, section, semester, subjectId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error updating subject:', error);
-//         throw new Error('Database update failed');
-//     }
-// };
-
-// const deleteSubject = async (subjectId) => {
-//     const query = 'DELETE FROM subjects WHERE subject_id = $1 RETURNING *;';
-//     try {
-//         const result = await pool.query(query, [subjectId]);
-//         return result.rows[0] || null;
-//     } catch (error) {
-//         console.error('Error deleting subject:', error);
-//         throw new Error('Database deletion failed');
-//     }
-// };
-
-// const getAppSetting = async (key) => {
-//     const query = 'SELECT setting_value FROM app_settings WHERE setting_key = $1;';
-//     try {
-//         const result = await pool.query(query, [key]);
-//         return result.rows[0]?.setting_value || null;
-//     } catch (error) {
-//         console.error('Error getting app setting:', error);
-//         throw new Error('Database query failed for app setting');
-//     }
-// };
-
-// const updateAppSetting = async (key, value, description = null) => {
-//     const query = `
-//             INSERT INTO app_settings (setting_key, setting_value, description)
-//             VALUES ($1, $2, $3)
-//             ON CONFLICT (setting_key) DO UPDATE SET
-//                 setting_value = EXCLUDED.setting_value,
-//                 description = EXCLUDED.description,
-//                 last_updated = CURRENT_TIMESTAMP
-//             RETURNING *;
-//         `;
-//     try {
-//         const result = await pool.query(query, [key, value, description]);
-//         return result.rows[0];
-//     } catch (error) {
-//         console.error('Error updating app setting:', error);
-//         throw new Error('Database operation failed for app setting');
-//     }
-// };
-
-// const getAllTableData = async (tableName) => {
-//     try {
-//         const result = await pool.query(`SELECT * FROM ${tableName}`);
-//         return result.rows;
-//     } catch (error) {
-//         console.error(`Error getting data from ${tableName}:`, error);
-//         throw new Error(`Failed to retrieve data for ${tableName}.`);
-//     }
-// };
-
-// const getStudentsForAttendanceSheet = async () => {
-//     const query = 'SELECT name, roll_number FROM students ORDER BY roll_number;';
-//     try {
-//         const result = await pool.query(query);
-//         return result.rows;
-//     } catch (error) {
-//         console.error('Error getting students for attendance sheet:', error);
-//         throw new Error('Database query failed for attendance sheet.');
-//     }
-// };
-
-// const countEntities = async (tableName) => {
-//     const query = `SELECT COUNT(*) FROM ${tableName};`;
-//     try {
-//         const result = await pool.query(query);
-//         return parseInt(result.rows[0].count);
-//     } catch (error) {
-//         console.error(`Error counting entities in ${tableName}:`, error);
-//         throw new Error(`Database query failed for count of ${tableName}`);
-//     }
-// };
-
-// const countDefaulters = async () => {
-//     return 2; // Placeholder, as real logic is complex.
-// };
-
-// const getDefaultersList = async (attendanceThreshold, page = 1, limit = 10) => {
-//     const offset = (page - 1) * limit;
-//     const countQuery = `
-//             WITH StudentAttendance AS (
-//                 SELECT
-//                     s.student_id,
-//                     s.roll_number,
-//                     COUNT(DISTINCT asess.session_id) AS total_sessions,
-//                     COUNT(CASE WHEN ar.status = 'present' THEN ar.record_id END) AS sessions_present
-//                 FROM
-//                     students s
-//                 JOIN
-//                     enrollments e ON s.student_id = e.student_id
-//                 JOIN
-//                     attendance_sessions asess ON e.subject_id = asess.subject_id
-//                 LEFT JOIN
-//                     attendance_records ar ON asess.session_id = ar.session_id AND s.student_id = ar.student_id
-//                 WHERE
-//                     asess.status = 'completed'
-//                     AND (ar.status = 'present' OR ar.status IS NULL OR ar.status IN ('absent', 'late'))
-//                 GROUP BY
-//                     s.student_id, s.roll_number
-//             )
-//             SELECT COUNT(*) FROM StudentAttendance WHERE
-//                 CASE
-//                     WHEN total_sessions = 0 THEN 0.0
-//                     ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-//                 END < $1;
-//         `;
-//     const dataQuery = `
-//             WITH StudentAttendance AS (
-//                 SELECT
-//                     s.student_id,
-//                     s.roll_number,
-//                     s.name AS student_name,
-//                     d.name AS department_name,
-//                     s.current_year,
-//                     s.section,
-//                     COUNT(DISTINCT asess.session_id) AS total_sessions,
-//                     COUNT(CASE WHEN ar.status = 'present' THEN ar.record_id END) AS sessions_present
-//                 FROM
-//                     students s
-//                 JOIN
-//                     departments d ON s.department_id = d.department_id
-//                 JOIN
-//                     enrollments e ON s.student_id = e.student_id
-//                 JOIN
-//                     attendance_sessions asess ON e.subject_id = asess.subject_id
-//                 LEFT JOIN
-//                     attendance_records ar ON asess.session_id = ar.session_id AND s.student_id = ar.student_id
-//                 WHERE
-//                     asess.status = 'completed'
-//                     AND (ar.status = 'present' OR ar.status IS NULL OR ar.status IN ('absent', 'late'))
-//                 GROUP BY
-//                     s.student_id, s.roll_number, s.name, d.name, s.current_year, s.section
-//             )
-//             SELECT
-//                 student_id,
-//                 roll_number,
-//                 student_name,
-//                 department_name,
-//                 current_year,
-//                 section,
-//                 total_sessions,
-//                 sessions_present,
-//                 CASE
-//                     WHEN total_sessions = 0 THEN 0.0
-//                     ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-//                 END AS attendance_percentage
-//             FROM
-//                 StudentAttendance
-//             WHERE
-//                 CASE
-//                     WHEN total_sessions = 0 THEN 0.0
-//                     ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-//                 END < $1
-//             ORDER BY
-//                 attendance_percentage ASC
-//             LIMIT $2 OFFSET $3;
-//         `;
-//     try {
-//         const result = await pool.query(dataQuery, [attendanceThreshold, limit, offset]);
-//         const countResult = await pool.query(countQuery, [attendanceThreshold]);
-//         const totalCount = parseInt(countResult.rows[0].count);
-
-//         return {
-//             defaulters: result.rows,
-//             totalItems: totalCount,
-//             totalPages: Math.ceil(totalCount / limit),
-//             currentPage: page
-//         };
-//     } catch (error) {
-//         console.error('Error fetching defaulters list with pagination:', error);
-//         throw new Error('Database query failed for defaulters list');
-//     }
-// };
-
-// module.exports = {
-//     findAdminByEmail,
-//     createAdmin,
-//     getAllDepartments,
-//     createDepartment,
-//     updateDepartment,
-//     deleteDepartment,
-//     getAllFaculties,
-//     createFacultyByAdmin,
-//     updateFaculty,
-//     deleteFaculty,
-//     getAllStudents,
-//     createStudent,
-//     updateStudent,
-//     deleteStudent,
-//     getAllSubjects,
-//     createSubject,
-//     updateSubject,
-//     deleteSubject,
-//     getAppSetting,
-//     updateAppSetting,
-//     getAllTableData,
-//     getStudentsForAttendanceSheet,
-//     countEntities,
-//     countDefaulters, // Keep for compatibility if used elsewhere
-//     getDefaultersList // EXPORTED
-// };
-
-const pool = require('../config/db');
+const { pool } = require('../config/db');
 const { hashPassword } = require('../utils/passwordHasher');
 
+// Find admin by email (for login)
 const findAdminByEmail = async (email) => {
-    const query = 'SELECT * FROM admins WHERE email = $1';
+    const query = 'SELECT * FROM admins WHERE email = $1;';
     try {
         const result = await pool.query(query, [email]);
-        return result.rows[0] || null;
+        return result.rows[0];
     } catch (error) {
         console.error('Error finding admin by email:', error);
-        throw new Error('Database query failed');
+        throw new Error('Database query failed.');
     }
 };
 
+// Find admin by ID
+const findAdminById = async (adminId) => {
+    const query = 'SELECT admin_id, name, email FROM admins WHERE admin_id = $1;';
+    try {
+        const result = await pool.query(query, [adminId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error finding admin by ID:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Create a new admin
 const createAdmin = async (name, email, passwordHash) => {
     const query = `
         INSERT INTO admins (name, email, password_hash)
@@ -1430,562 +35,705 @@ const createAdmin = async (name, email, passwordHash) => {
     try {
         const result = await pool.query(query, [name, email, passwordHash]);
         return result.rows[0];
-    }
-    catch (error) {
+    } catch (error) {
         console.error('Error creating admin:', error);
-        throw new Error('Database insertion failed');
+        throw new Error('Database insertion failed.');
     }
 };
 
-const getAllDepartments = async (page = 1, limit = 10, searchTerm = '') => {
-    const offset = (page - 1) * limit;
-    let queryParams = [limit, offset];
-    let whereClauses = [];
-    let paramIndex = 3;
+// Update admin profile
+const updateAdminProfile = async (adminId, updates) => {
+    const updateFields = [];
+    const queryParams = [adminId];
+    let paramIndex = 2;
 
-    if (searchTerm) {
-        whereClauses.push(`LOWER(name) LIKE LOWER($${paramIndex})`);
-        queryParams.push(`%${searchTerm}%`);
-        paramIndex++;
+    for (const key in updates) {
+        if (updates.hasOwnProperty(key) && ['name', 'email'].includes(key)) {
+            updateFields.push(`${key} = $${paramIndex++}`);
+            queryParams.push(updates[key]);
+        }
     }
+    if (updateFields.length === 0) return null;
 
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    const countQuery = `SELECT COUNT(*) FROM departments ${whereClause};`;
-    const dataQuery = `
-        SELECT * FROM departments ${whereClause} ORDER BY name LIMIT $1 OFFSET $2;
+    const query = `
+        UPDATE admins
+        SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+        WHERE admin_id = $1
+        RETURNING admin_id, name, email;
     `;
     try {
-        const countResult = await pool.query(countQuery, queryParams.slice(2));
-        const totalCount = parseInt(countResult.rows[0].count);
-        const dataResult = await pool.query(dataQuery, queryParams);
+        const result = await pool.query(query, queryParams);
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error('Error updating admin profile:', error);
+        throw new Error('Database update failed.');
+    }
+};
+
+// Update admin password
+const updateAdminPassword = async (adminId, newHashedPassword) => {
+    const query = `
+        UPDATE admins
+        SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE admin_id = $2
+        RETURNING admin_id, name, email;
+    `;
+    try {
+        const result = await pool.query(query, [newHashedPassword, adminId]);
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error('Error updating admin password:', error);
+        throw new Error('Database password update failed.');
+    }
+};
+
+// Get all departments with pagination
+const getAllDepartments = async (page = 1, limit = 10) => {
+    const offset = (page - 1) * limit;
+    const query = `
+        SELECT 
+            department_id,
+            name,
+            created_at,
+            updated_at
+        FROM departments
+        ORDER BY name
+        LIMIT $1 OFFSET $2;
+    `;
+    const countQuery = 'SELECT COUNT(*) FROM departments;';
+    
+    try {
+        const [result, countResult] = await Promise.all([
+            pool.query(query, [limit, offset]),
+            pool.query(countQuery)
+        ]);
+        
+        const totalItems = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(totalItems / limit);
         
         return {
-            departments: dataResult.rows,
-            totalItems: totalCount,
-            totalPages: Math.ceil(totalCount / limit),
+            departments: result.rows,
+            totalItems,
+            totalPages,
             currentPage: page
         };
     } catch (error) {
-        console.error('Error getting all departments with pagination/search:', error);
-        throw new Error('Database query failed for departments pagination/search');
+        console.error('Error getting all departments:', error);
+        throw new Error('Database query failed.');
     }
 };
 
+// Create a new department
 const createDepartment = async (name) => {
-    const query = 'INSERT INTO departments (name) VALUES ($1) RETURNING *;';
+    const query = `
+        INSERT INTO departments (name)
+        VALUES ($1)
+        RETURNING department_id, name;
+    `;
     try {
         const result = await pool.query(query, [name]);
         return result.rows[0];
     } catch (error) {
         console.error('Error creating department:', error);
-        throw new Error('Database insertion failed');
+        throw new Error('Database insertion failed.');
     }
 };
 
+// Update department
 const updateDepartment = async (departmentId, name) => {
     const query = `
-        UPDATE departments SET name = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE department_id = $2 RETURNING *;
+        UPDATE departments
+        SET name = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE department_id = $1
+        RETURNING department_id, name;
     `;
     try {
-        const result = await pool.query(query, [name, departmentId]);
+        const result = await pool.query(query, [departmentId, name]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error updating department:', error);
-        throw new Error('Database update failed');
+        throw new Error('Database update failed.');
     }
 };
 
+// Delete department
 const deleteDepartment = async (departmentId) => {
-    const query = 'DELETE FROM departments WHERE department_id = $1 RETURNING *;';
+    const query = `
+        DELETE FROM departments
+        WHERE department_id = $1
+        RETURNING department_id, name;
+    `;
     try {
         const result = await pool.query(query, [departmentId]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error deleting department:', error);
-        throw new Error('Database deletion failed');
+        throw new Error('Database deletion failed.');
     }
 };
 
-const getAllFaculties = async (page = 1, limit = 10, searchTerm = '', filterDepartmentId = '') => {
+// Get all faculties with pagination
+const getAllFaculties = async (page = 1, limit = 10) => {
     const offset = (page - 1) * limit;
-    let queryParams = [limit, offset];
-    let whereClauses = [];
-    let paramIndex = 3;
-
-    if (searchTerm) {
-        whereClauses.push(`(LOWER(f.name) LIKE LOWER($${paramIndex}) OR LOWER(f.email) LIKE LOWER($${paramIndex}))`);
-        queryParams.push(`%${searchTerm}%`);
-        paramIndex++;
-    }
-    if (filterDepartmentId) {
-        whereClauses.push(`f.department_id = $${paramIndex}`);
-        queryParams.push(filterDepartmentId);
-        paramIndex++;
-    }
-
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    const countQuery = `SELECT COUNT(*) FROM faculties f JOIN departments d ON f.department_id = d.department_id ${whereClause};`;
-    const dataQuery = `
+    const query = `
         SELECT 
-            f.faculty_id, 
-            f.name, 
-            f.email, 
-            d.name AS department_name 
-        FROM faculties f 
-        JOIN departments d ON f.department_id = d.department_id 
-        ${whereClause}
-        ORDER BY f.name 
+            f.faculty_id,
+            f.name,
+            f.email,
+            f.created_at,
+            f.updated_at,
+            d.name AS department_name,
+            d.department_id
+        FROM faculties f
+        LEFT JOIN departments d ON f.department_id = d.department_id
+        ORDER BY f.name
         LIMIT $1 OFFSET $2;
     `;
+    const countQuery = 'SELECT COUNT(*) FROM faculties;';
+    
     try {
-        const countResult = await pool.query(countQuery, queryParams.slice(2));
-        const totalCount = parseInt(countResult.rows[0].count);
-
-        const dataResult = await pool.query(dataQuery, queryParams);
+        const [result, countResult] = await Promise.all([
+            pool.query(query, [limit, offset]),
+            pool.query(countQuery)
+        ]);
+        
+        const totalItems = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(totalItems / limit);
         
         return {
-            faculty: dataResult.rows,
-            totalItems: totalCount,
-            totalPages: Math.ceil(totalCount / limit),
+            faculty: result.rows,
+            totalItems,
+            totalPages,
             currentPage: page
         };
     } catch (error) {
-        console.error('Error getting all faculties with pagination/search:', error);
-        throw new Error('Database query failed for faculties pagination/search');
+        console.error('Error getting all faculties:', error);
+        throw new Error('Database query failed.');
     }
 };
 
+// Create faculty by admin
 const createFacultyByAdmin = async (name, email, password, departmentId) => {
+    const { hashPassword } = require('../utils/passwordHasher');
     const hashedPassword = await hashPassword(password);
+    
     const query = `
         INSERT INTO faculties (name, email, password_hash, department_id)
         VALUES ($1, $2, $3, $4)
-        RETURNING faculty_id, name, email;
+        RETURNING faculty_id, name, email, department_id;
     `;
     try {
         const result = await pool.query(query, [name, email, hashedPassword, departmentId]);
         return result.rows[0];
     } catch (error) {
-        console.error('Error creating faculty by admin:', error);
-        throw new Error('Database insertion failed');
+        console.error('Error creating faculty:', error);
+        throw new Error('Database insertion failed.');
     }
 };
 
+// Update faculty
 const updateFaculty = async (facultyId, name, email, departmentId) => {
     const query = `
-        UPDATE faculties SET name = $1, email = $2, department_id = $3, updated_at = CURRENT_TIMESTAMP
-        WHERE faculty_id = $4 RETURNING faculty_id, name, email;
+        UPDATE faculties
+        SET name = $2, email = $3, department_id = $4, updated_at = CURRENT_TIMESTAMP
+        WHERE faculty_id = $1
+        RETURNING faculty_id, name, email, department_id;
     `;
     try {
-        const result = await pool.query(query, [name, email, departmentId, facultyId]);
+        const result = await pool.query(query, [facultyId, name, email, departmentId]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error updating faculty:', error);
-        throw new Error('Database update failed');
+        throw new Error('Database update failed.');
     }
 };
 
+// Delete faculty
 const deleteFaculty = async (facultyId) => {
-    const query = 'DELETE FROM faculties WHERE faculty_id = $1 RETURNING *;';
+    const query = `
+        DELETE FROM faculties
+        WHERE faculty_id = $1
+        RETURNING faculty_id, name, email;
+    `;
     try {
         const result = await pool.query(query, [facultyId]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error deleting faculty:', error);
-        throw new Error('Database deletion failed');
+        throw new Error('Database deletion failed.');
     }
 };
 
-const getAllStudents = async (page = 1, limit = 10, searchTerm = '', filterYear = '', filterDepartmentId = '') => {
+// Get all students with pagination
+const getAllStudents = async (page = 1, limit = 10) => {
     const offset = (page - 1) * limit;
-    let queryParams = [limit, offset];
-    let whereClauses = [];
-    let paramIndex = 3;
-
-    if (searchTerm) {
-        whereClauses.push(`(LOWER(s.name) LIKE LOWER($${paramIndex}) OR LOWER(s.roll_number) LIKE LOWER($${paramIndex}))`);
-        queryParams.push(`%${searchTerm}%`);
-        paramIndex++;
-    }
-    if (filterYear) {
-        whereClauses.push(`s.current_year = $${paramIndex}`);
-        queryParams.push(parseInt(filterYear));
-        paramIndex++;
-    }
-    if (filterDepartmentId) {
-        whereClauses.push(`s.department_id = $${paramIndex}`);
-        queryParams.push(filterDepartmentId);
-        paramIndex++;
-    }
-
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    const countQuery = `SELECT COUNT(*) FROM students s JOIN departments d ON s.department_id = d.department_id ${whereClause};`;
-    const dataQuery = `
+    const query = `
         SELECT 
-            s.student_id, 
-            s.roll_number, 
-            s.name, 
-            s.email, 
-            d.name AS department_name, 
-            s.current_year, 
-            s.section 
-        FROM students s 
-        JOIN departments d ON s.department_id = d.department_id 
-        ${whereClause}
-        ORDER BY s.roll_number 
+            s.student_id,
+            s.roll_number,
+            s.name,
+            s.email,
+            s.current_year,
+            s.section,
+            s.created_at,
+            s.updated_at,
+            d.name AS department_name,
+            d.department_id
+        FROM students s
+        JOIN departments d ON s.department_id = d.department_id
+        ORDER BY s.roll_number
         LIMIT $1 OFFSET $2;
     `;
+    const countQuery = 'SELECT COUNT(*) FROM students;';
+    
     try {
-        const countResult = await pool.query(countQuery, queryParams.slice(2));
-        const totalCount = parseInt(countResult.rows[0].count);
-
-        const dataResult = await pool.query(dataQuery, queryParams);
+        const [result, countResult] = await Promise.all([
+            pool.query(query, [limit, offset]),
+            pool.query(countQuery)
+        ]);
+        
+        const totalItems = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(totalItems / limit);
         
         return {
-            students: dataResult.rows,
-            totalItems: totalCount,
-            totalPages: Math.ceil(totalCount / limit),
+            students: result.rows,
+            totalItems,
+            totalPages,
             currentPage: page
         };
     } catch (error) {
-        console.error('Error getting all students with pagination/search:', error);
-        throw new Error('Database query failed for students pagination/search');
+        console.error('Error getting all students:', error);
+        throw new Error('Database query failed.');
     }
 };
 
+// Create student
 const createStudent = async (rollNumber, name, email, departmentId, currentYear, section) => {
-    const defaultPassword = 'changeme123'; // or generate a random one
-    const hashedPassword = await hashPassword(defaultPassword);
+    const { hashPassword } = require('../utils/passwordHasher');
+    const hashedPassword = await hashPassword('password123'); // Default password
+    
     const query = `
-        INSERT INTO students (roll_number, name, email, department_id, current_year, section, password_hash)
+        INSERT INTO students (roll_number, name, email, password_hash, department_id, current_year, section)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING student_id, roll_number, name, email;
-    `;
-    const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, hashedPassword]);
-    return result.rows[0];
-};
-
-const updateStudent = async (studentId, rollNumber, name, email, departmentId, currentYear, section) => {
-    const query = `
-        UPDATE students SET roll_number = $1, name = $2, email = $3, department_id = $4, current_year = $5, section = $6, updated_at = CURRENT_TIMESTAMP
-        WHERE student_id = $7 RETURNING student_id, roll_number, name, email;
+        RETURNING student_id, roll_number, name, email, department_id, current_year, section;
     `;
     try {
-        const result = await pool.query(query, [rollNumber, name, email, departmentId, currentYear, section, studentId]);
+        const result = await pool.query(query, [rollNumber, name, email, hashedPassword, departmentId, currentYear, section]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error creating student:', error);
+        throw new Error('Database insertion failed.');
+    }
+};
+
+// Update student
+const updateStudent = async (studentId, rollNumber, name, email, departmentId, currentYear, section) => {
+    const query = `
+        UPDATE students
+        SET roll_number = $2, name = $3, email = $4, department_id = $5, current_year = $6, section = $7, updated_at = CURRENT_TIMESTAMP
+        WHERE student_id = $1
+        RETURNING student_id, roll_number, name, email, department_id, current_year, section;
+    `;
+    try {
+        const result = await pool.query(query, [studentId, rollNumber, name, email, departmentId, currentYear, section]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error updating student:', error);
-        throw new Error('Database update failed');
+        throw new Error('Database update failed.');
     }
 };
 
+// Delete student
 const deleteStudent = async (studentId) => {
-    const query = 'DELETE FROM students WHERE student_id = $1 RETURNING *;';
+    const query = `
+        DELETE FROM students
+        WHERE student_id = $1
+        RETURNING student_id, roll_number, name;
+    `;
     try {
         const result = await pool.query(query, [studentId]);
         return result.rows[0] || null;
-    }
-    catch (error) {
+    } catch (error) {
         console.error('Error deleting student:', error);
-        throw new Error('Database deletion failed');
+        throw new Error('Database deletion failed.');
     }
 };
 
+// Get all subjects with pagination and filters
 const getAllSubjects = async (page = 1, limit = 10, searchTerm = '', filterYear = '', filterSection = '', filterSemester = '', filterDepartmentId = '') => {
     const offset = (page - 1) * limit;
-    let queryParams = [limit, offset];
-    let whereClauses = [];
-    let paramIndex = 3;
-
-    if (searchTerm) {
-        whereClauses.push(`LOWER(s.subject_name) LIKE LOWER($${paramIndex})`);
-        queryParams.push(`%${searchTerm}%`);
-        paramIndex++;
-    }
-    if (filterYear) {
-        whereClauses.push(`s.year = $${paramIndex}`);
-        queryParams.push(parseInt(filterYear));
-        paramIndex++;
-    }
-    if (filterSection) {
-        whereClauses.push(`LOWER(s.section) = LOWER($${paramIndex})`);
-        queryParams.push(filterSection);
-        paramIndex++;
-    }
-    if (filterSemester) {
-        whereClauses.push(`s.semester = $${paramIndex}`);
-        queryParams.push(parseInt(filterSemester));
-        paramIndex++;
-    }
-    if (filterDepartmentId) {
-        whereClauses.push(`s.department_id = $${paramIndex}`);
-        queryParams.push(filterDepartmentId);
-        paramIndex++;
-    }
-
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    const countQuery = `SELECT COUNT(*) FROM subjects s JOIN departments d ON s.department_id = d.department_id ${whereClause};`;
-    const dataQuery = `
+    let query = `
         SELECT 
-            s.subject_id, 
-            s.subject_name, 
-            s.year, 
-            s.section, 
-            s.semester, 
-            d.name AS department_name 
-        FROM subjects s 
-        JOIN departments d ON s.department_id = d.department_id 
-        ${whereClause}
-        ORDER BY s.subject_name 
-        LIMIT $1 OFFSET $2;
+            s.subject_id,
+            s.subject_name,
+            s.year,
+            s.section,
+            s.semester,
+            s.created_at,
+            d.name AS department_name,
+            d.department_id
+        FROM subjects s
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE 1=1
     `;
+    
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    if (searchTerm) {
+        query += ` AND s.subject_name ILIKE $${paramIndex++}`;
+        queryParams.push(`%${searchTerm}%`);
+    }
+    
+    if (filterYear) {
+        query += ` AND s.year = $${paramIndex++}`;
+        queryParams.push(filterYear);
+    }
+    
+    if (filterSection) {
+        query += ` AND s.section = $${paramIndex++}`;
+        queryParams.push(filterSection);
+    }
+    
+    if (filterSemester) {
+        query += ` AND s.semester = $${paramIndex++}`;
+        queryParams.push(filterSemester);
+    }
+    
+    if (filterDepartmentId) {
+        query += ` AND s.department_id = $${paramIndex++}`;
+        queryParams.push(filterDepartmentId);
+    }
+    
+    query += ` ORDER BY s.subject_name LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    queryParams.push(limit, offset);
+    
+    const countQuery = `
+        SELECT COUNT(*) FROM subjects s
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE 1=1
+        ${searchTerm ? 'AND s.subject_name ILIKE $1' : ''}
+        ${filterYear ? 'AND s.year = $2' : ''}
+        ${filterSection ? 'AND s.section = $3' : ''}
+        ${filterSemester ? 'AND s.semester = $4' : ''}
+        ${filterDepartmentId ? 'AND s.department_id = $5' : ''}
+    `;
+    
     try {
-        const countResult = await pool.query(countQuery, queryParams.slice(2));
-        const totalCount = parseInt(countResult.rows[0].count);
-        const dataResult = await pool.query(dataQuery, queryParams);
+        const [result, countResult] = await Promise.all([
+            pool.query(query, queryParams),
+            pool.query(countQuery, queryParams.slice(0, -2))
+        ]);
+        
+        const totalItems = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(totalItems / limit);
         
         return {
-            subjects: dataResult.rows,
-            totalItems: totalCount,
-            totalPages: Math.ceil(totalCount / limit),
+            subjects: result.rows,
+            totalItems,
+            totalPages,
             currentPage: page
         };
     } catch (error) {
-        console.error('Error getting all subjects with pagination/search:', error);
-        throw new Error('Database query failed for subjects pagination/search');
+        console.error('Error getting all subjects:', error);
+        throw new Error('Database query failed.');
     }
 };
 
+// Create subject
 const createSubject = async (subjectName, departmentId, year, section, semester) => {
     const query = `
         INSERT INTO subjects (subject_name, department_id, year, section, semester)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING subject_id, subject_name, semester;
+        RETURNING subject_id, subject_name, department_id, year, section, semester;
     `;
     try {
         const result = await pool.query(query, [subjectName, departmentId, year, section, semester]);
         return result.rows[0];
     } catch (error) {
         console.error('Error creating subject:', error);
-        throw new Error('Database insertion failed');
+        throw new Error('Database insertion failed.');
     }
 };
 
+// Update subject
 const updateSubject = async (subjectId, subjectName, departmentId, year, section, semester) => {
     const query = `
-        UPDATE subjects SET subject_name = $1, department_id = $2, year = $3, section = $4, semester = $5, updated_at = CURRENT_TIMESTAMP
-        WHERE subject_id = $6 RETURNING subject_id, subject_name, semester;
+        UPDATE subjects
+        SET subject_name = $2, department_id = $3, year = $4, section = $5, semester = $6, updated_at = CURRENT_TIMESTAMP
+        WHERE subject_id = $1
+        RETURNING subject_id, subject_name, department_id, year, section, semester;
     `;
     try {
-        const result = await pool.query(query, [subjectName, departmentId, year, section, semester, subjectId]);
+        const result = await pool.query(query, [subjectId, subjectName, departmentId, year, section, semester]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error updating subject:', error);
-        throw new Error('Database update failed');
+        throw new Error('Database update failed.');
     }
 };
 
+// Delete subject
 const deleteSubject = async (subjectId) => {
-    const query = 'DELETE FROM subjects WHERE subject_id = $1 RETURNING *;';
+    const query = `
+        DELETE FROM subjects
+        WHERE subject_id = $1
+        RETURNING subject_id, subject_name;
+    `;
     try {
         const result = await pool.query(query, [subjectId]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error deleting subject:', error);
-        throw new Error('Database deletion failed');
+        throw new Error('Database deletion failed.');
     }
 };
 
-const getAppSetting = async (key) => {
+// Get app setting
+const getAppSetting = async (settingKey) => {
     const query = 'SELECT setting_value FROM app_settings WHERE setting_key = $1;';
     try {
-        const result = await pool.query(query, [key]);
+        const result = await pool.query(query, [settingKey]);
         return result.rows[0]?.setting_value || null;
     } catch (error) {
         console.error('Error getting app setting:', error);
-        throw new Error('Database query failed for app setting');
+        throw new Error('Database query failed.');
     }
 };
 
-const updateAppSetting = async (key, value, description = null) => {
+// Update app setting
+const updateAppSetting = async (settingKey, settingValue, description = null) => {
     const query = `
-            INSERT INTO app_settings (setting_key, setting_value, description)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (setting_key) DO UPDATE SET
-                setting_value = EXCLUDED.setting_value,
-                description = EXCLUDED.description,
-                last_updated = CURRENT_TIMESTAMP
-            RETURNING *;
-        `;
+        INSERT INTO app_settings (setting_key, setting_value, description)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (setting_key) 
+        DO UPDATE SET 
+            setting_value = EXCLUDED.setting_value,
+            description = EXCLUDED.description,
+            last_updated = CURRENT_TIMESTAMP
+        RETURNING setting_key, setting_value;
+    `;
     try {
-        const result = await pool.query(query, [key, value, description]);
+        const result = await pool.query(query, [settingKey, settingValue, description]);
         return result.rows[0];
     } catch (error) {
         console.error('Error updating app setting:', error);
-        throw new Error('Database operation failed for app setting');
+        throw new Error('Database update failed.');
     }
 };
 
-const getAllTableData = async (tableName) => {
-    try {
-        const result = await pool.query(`SELECT * FROM ${tableName}`);
-        return result.rows;
-    } catch (error) {
-        console.error(`Error getting data from ${tableName}:`, error);
-        throw new Error(`Failed to retrieve data for ${tableName}.`);
-    }
-};
-
-const getStudentsForAttendanceSheet = async () => {
-    const query = 'SELECT name, roll_number FROM students ORDER BY roll_number;';
-    try {
-        const result = await pool.query(query);
-        return result.rows;
-    } catch (error) {
-        console.error('Error getting students for attendance sheet:', error);
-        throw new Error('Database query failed for attendance sheet.');
-    }
-};
-
+// Count entities
 const countEntities = async (tableName) => {
     const query = `SELECT COUNT(*) FROM ${tableName};`;
     try {
         const result = await pool.query(query);
         return parseInt(result.rows[0].count);
     } catch (error) {
-        console.error(`Error counting entities in ${tableName}:`, error);
-        throw new Error(`Database query failed for count of ${tableName}`);
+        console.error(`Error counting ${tableName}:`, error);
+        throw new Error('Database query failed.');
     }
 };
 
+// Count defaulters
 const countDefaulters = async () => {
-    return 2; // Placeholder, as real logic is complex.
+    const query = `
+        SELECT COUNT(DISTINCT s.student_id) 
+        FROM students s
+        JOIN enrollments e ON s.student_id = e.student_id
+        JOIN attendance_sessions ass ON e.subject_id = ass.subject_id
+        JOIN attendance_records ar ON ass.session_id = ar.session_id AND ar.student_id = s.student_id
+        WHERE ass.status IN ('closed', 'completed')
+        GROUP BY s.student_id
+        HAVING (
+            COUNT(CASE WHEN ar.status IN ('present', 'late') THEN 1 END)::DECIMAL / 
+            COUNT(ar.record_id)::DECIMAL * 100
+        ) < 75;
+    `;
+    try {
+        const result = await pool.query(query);
+        return result.rows.length;
+    } catch (error) {
+        console.error('Error counting defaulters:', error);
+        throw new Error('Database query failed.');
+    }
 };
 
-const getDefaultersList = async (attendanceThreshold, page = 1, limit = 10, searchTerm = '', filterDepartmentId = '') => {
+// Get defaulters list with pagination
+const getDefaultersList = async (threshold = 75, page = 1, limit = 10) => {
     const offset = (page - 1) * limit;
-    let queryParams = [attendanceThreshold, limit, offset];
-    let whereClauses = [];
-    let paramIndex = 4;
-
-    if (searchTerm) {
-        whereClauses.push(`(LOWER(student_name) LIKE LOWER($${paramIndex}) OR LOWER(roll_number) LIKE LOWER($${paramIndex}))`);
-        queryParams.push(`%${searchTerm}%`);
-        paramIndex++;
-    }
-    if (filterDepartmentId) {
-        whereClauses.push(`department_id = $${paramIndex}`);
-        queryParams.push(filterDepartmentId);
-        paramIndex++;
-    }
-
-    const whereClause = whereClauses.length > 0 ? `AND ${whereClauses.join(' AND ')}` : '';
-
+    const query = `
+        WITH student_attendance AS (
+            SELECT 
+                s.student_id,
+                s.roll_number,
+                s.name,
+                s.email,
+                s.current_year,
+                s.section,
+                d.name AS department_name,
+                COUNT(ar.record_id) AS total_sessions,
+                COUNT(CASE WHEN ar.status IN ('present', 'late') THEN 1 END) AS present_sessions,
+                ROUND(
+                    (COUNT(CASE WHEN ar.status IN ('present', 'late') THEN 1 END)::DECIMAL / 
+                    NULLIF(COUNT(ar.record_id), 0)::DECIMAL) * 100, 2
+                ) AS attendance_percentage
+            FROM students s
+            JOIN departments d ON s.department_id = d.department_id
+            JOIN enrollments e ON s.student_id = e.student_id
+            JOIN attendance_sessions ass ON e.subject_id = ass.subject_id
+            JOIN attendance_records ar ON ass.session_id = ar.session_id AND ar.student_id = s.student_id
+            WHERE ass.status IN ('closed', 'completed')
+            GROUP BY s.student_id, s.roll_number, s.name, s.email, s.current_year, s.section, d.name
+            HAVING (
+                COUNT(CASE WHEN ar.status IN ('present', 'late') THEN 1 END)::DECIMAL / 
+                NULLIF(COUNT(ar.record_id), 0)::DECIMAL * 100
+            ) < $1
+        )
+        SELECT * FROM student_attendance
+        ORDER BY attendance_percentage ASC
+        LIMIT $2 OFFSET $3;
+    `;
+    
     const countQuery = `
-            WITH StudentAttendance AS (
-                SELECT
-                    s.student_id,
-                    s.roll_number,
-                    s.department_id,
-                    COUNT(DISTINCT asess.session_id) AS total_sessions,
-                    COUNT(CASE WHEN ar.status = 'present' THEN ar.record_id END) AS sessions_present
-                FROM
-                    students s
-                JOIN
-                    enrollments e ON s.student_id = e.student_id
-                JOIN
-                    attendance_sessions asess ON e.subject_id = asess.subject_id
-                LEFT JOIN
-                    attendance_records ar ON asess.session_id = ar.session_id AND s.student_id = ar.student_id
-                WHERE
-                    asess.status = 'completed'
-                    AND (ar.status = 'present' OR ar.status IS NULL OR ar.status IN ('absent', 'late'))
-                GROUP BY
-                    s.student_id, s.roll_number, s.department_id
-            )
-            SELECT COUNT(*) FROM StudentAttendance WHERE
-                CASE
-                    WHEN total_sessions = 0 THEN 0.0
-                    ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-                END < $1 ${whereClause};
-        `;
-    const dataQuery = `
-            WITH StudentAttendance AS (
-                SELECT
-                    s.student_id,
-                    s.roll_number,
-                    s.name AS student_name,
-                    d.name AS department_name,
-                    s.current_year,
-                    s.section,
-                    s.department_id,
-                    COUNT(DISTINCT asess.session_id) AS total_sessions,
-                    COUNT(CASE WHEN ar.status = 'present' THEN ar.record_id END) AS sessions_present
-                FROM
-                    students s
-                JOIN
-                    departments d ON s.department_id = d.department_id
-                JOIN
-                    enrollments e ON s.student_id = e.student_id
-                JOIN
-                    attendance_sessions asess ON e.subject_id = asess.subject_id
-                LEFT JOIN
-                    attendance_records ar ON asess.session_id = ar.session_id AND s.student_id = ar.student_id
-                WHERE
-                    asess.status = 'completed'
-                    AND (ar.status = 'present' OR ar.status IS NULL OR ar.status IN ('absent', 'late'))
-                GROUP BY
-                    s.student_id, s.roll_number, s.name, d.name, s.current_year, s.section, s.department_id
-            )
-            SELECT
-                student_id,
-                roll_number,
-                student_name,
-                department_name,
-                current_year,
-                section,
-                total_sessions,
-                sessions_present,
-                CASE
-                    WHEN total_sessions = 0 THEN 0.0
-                    ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-                END AS attendance_percentage
-            FROM
-                StudentAttendance
-            WHERE
-                CASE
-                    WHEN total_sessions = 0 THEN 0.0
-                    ELSE (CAST(sessions_present AS NUMERIC) * 100.0 / total_sessions)
-                END < $1 ${whereClause}
-            ORDER BY
-                attendance_percentage ASC
-            LIMIT $2 OFFSET $3;
-        `;
+        WITH student_attendance AS (
+            SELECT s.student_id
+            FROM students s
+            JOIN enrollments e ON s.student_id = e.student_id
+            JOIN attendance_sessions ass ON e.subject_id = ass.subject_id
+            JOIN attendance_records ar ON ass.session_id = ar.session_id AND ar.student_id = s.student_id
+            WHERE ass.status IN ('closed', 'completed')
+            GROUP BY s.student_id
+            HAVING (
+                COUNT(CASE WHEN ar.status IN ('present', 'late') THEN 1 END)::DECIMAL / 
+                NULLIF(COUNT(ar.record_id), 0)::DECIMAL * 100
+            ) < $1
+        )
+        SELECT COUNT(*) FROM student_attendance;
+    `;
+    
     try {
-        const result = await pool.query(dataQuery, queryParams);
-        const countResult = await pool.query(countQuery, queryParams.slice(0, 1).concat(queryParams.slice(3)));
-        const totalCount = parseInt(countResult.rows[0].count);
-
+        const [result, countResult] = await Promise.all([
+            pool.query(query, [threshold, limit, offset]),
+            pool.query(countQuery, [threshold])
+        ]);
+        
+        const totalItems = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(totalItems / limit);
+        
         return {
             defaulters: result.rows,
-            totalItems: totalCount,
-            totalPages: Math.ceil(totalCount / limit),
+            totalItems,
+            totalPages,
             currentPage: page
         };
     } catch (error) {
-        console.error('Error fetching defaulters list with pagination/search:', error);
-        throw new Error('Database query failed for defaulters list');
+        console.error('Error getting defaulters list:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Get all table data for backup
+const getAllTableData = async (tableName) => {
+    const query = `SELECT * FROM ${tableName};`;
+    try {
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.error(`Error getting ${tableName} data:`, error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Get students for attendance sheet
+const getStudentsForAttendanceSheet = async () => {
+    const query = `
+        SELECT 
+            s.student_id,
+            s.roll_number,
+            s.name,
+            s.email,
+            s.current_year,
+            s.section,
+            d.name AS department_name
+        FROM students s
+        JOIN departments d ON s.department_id = d.department_id
+        ORDER BY s.roll_number;
+    `;
+    try {
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.error('Error getting students for attendance sheet:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Get dashboard statistics
+const getDashboardStats = async () => {
+    const query = `
+        SELECT 
+            (SELECT COUNT(*) FROM departments) AS total_departments,
+            (SELECT COUNT(*) FROM faculties) AS total_faculties,
+            (SELECT COUNT(*) FROM students) AS total_students,
+            (SELECT COUNT(*) FROM subjects) AS total_subjects,
+            (SELECT COUNT(*) FROM attendance_sessions WHERE status = 'open') AS active_sessions,
+            (SELECT COUNT(*) FROM attendance_records WHERE DATE(created_at) = CURRENT_DATE) AS today_attendance_records;
+    `;
+    try {
+        const result = await pool.query(query);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error getting dashboard stats:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Get attendance statistics
+const getAttendanceStats = async (startDate = null, endDate = null) => {
+    let query = `
+        SELECT 
+            COUNT(DISTINCT ass.session_id) AS total_sessions,
+            COUNT(ar.record_id) AS total_attendance_records,
+            COUNT(CASE WHEN ar.status = 'present' THEN 1 END) AS present_count,
+            COUNT(CASE WHEN ar.status = 'late' THEN 1 END) AS late_count,
+            COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) AS absent_count,
+            ROUND(
+                (COUNT(CASE WHEN ar.status IN ('present', 'late') THEN 1 END)::DECIMAL / 
+                NULLIF(COUNT(ar.record_id), 0)::DECIMAL) * 100, 2
+            ) AS overall_attendance_percentage
+        FROM attendance_sessions ass
+        LEFT JOIN attendance_records ar ON ass.session_id = ar.session_id
+        WHERE ass.status IN ('closed', 'completed')
+    `;
+    
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    if (startDate) {
+        query += ` AND ass.session_date >= $${paramIndex++}`;
+        queryParams.push(startDate);
+    }
+    
+    if (endDate) {
+        query += ` AND ass.session_date <= $${paramIndex++}`;
+        queryParams.push(endDate);
+    }
+    
+    try {
+        const result = await pool.query(query, queryParams);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error getting attendance stats:', error);
+        throw new Error('Database query failed.');
     }
 };
 
 module.exports = {
     findAdminByEmail,
+    findAdminById,
     createAdmin,
+    updateAdminProfile,
+    updateAdminPassword,
     getAllDepartments,
     createDepartment,
     updateDepartment,
@@ -2004,9 +752,11 @@ module.exports = {
     deleteSubject,
     getAppSetting,
     updateAppSetting,
-    getAllTableData,
-    getStudentsForAttendanceSheet,
     countEntities,
     countDefaulters,
-    getDefaultersList
+    getDefaultersList,
+    getAllTableData,
+    getStudentsForAttendanceSheet,
+    getDashboardStats,
+    getAttendanceStats,
 };

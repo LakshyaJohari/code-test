@@ -1,7 +1,7 @@
 const express = require('express');
 const { loginFaculty, getMyProfile, updateMyProfile, changeMyPassword } = require('../controllers/facultyController');
-const { getFacultySubjects } = require('../models/facultyModel'); // Assuming getFacultySubjects is in facultyModel
-const authMiddleware = require('../middleware/authMiddleware'); // Ensure this EXACT casing matches your file!
+const { getFacultySubjects } = require('../models/userModel'); // Fixed: import from userModel
+const { authMiddleware } = require('../middleware/authMiddleware'); // Fixed: use destructuring
 const { requireFaculty } = require('../middleware/accessControlMiddleware'); // Import role middleware
 
 const router = express.Router();

@@ -2,13 +2,23 @@
 import React from 'react';
 
 // --- 1. Receive props from App.jsx ---
-export default function Settings({ mockData, attendanceThreshold, onThresholdChange }) {
+export default function Settings({ departments, faculty, students, subjects, attendanceThreshold, onThresholdChange }) {
 
     // --- 2. Implement the backup function ---
     const handleBackup = () => {
-        // Create a JSON string from the mockData object
+        // Create a backup object with all the data
+        const backupData = {
+            departments,
+            faculty,
+            students,
+            subjects,
+            attendanceThreshold,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Create a JSON string from the backup data
         const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-            JSON.stringify(mockData, null, 2)
+            JSON.stringify(backupData, null, 2)
         )}`;
         
         // Create a temporary link element to trigger the download
@@ -39,14 +49,14 @@ export default function Settings({ mockData, attendanceThreshold, onThresholdCha
         printWindow.document.write('</style></head><body>');
         printWindow.document.write('<h1>Master Attendance Sheet</h1>');
 
-        mockData.subjects.forEach((subject, index) => {
+        subjects.forEach((subject, index) => {
             if (index > 0) {
                 // Add a page break before each new subject except the first one
                 printWindow.document.write('<div class="page-break"></div>');
             }
             
             // Find students enrolled in this subject
-            const enrolledStudents = mockData.students.filter(
+            const enrolledStudents = students.filter(
                 student => student.department === subject.department && student.startYear === subject.startYear
             );
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { GanttChartSquare, Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const GoogleIcon = (props) => (
@@ -22,14 +21,31 @@ const LoginPage = ({ onLogin }) => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (email && password) {
-            onLogin();
-        } else {
-            alert('Please enter both email and password.');
+        setError('');
+        
+        if (!email || !password) {
+            setError('Please enter both email and password.');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const result = await onLogin(email, password);
+            if (result.success) {
+                // Login successful, App.jsx will handle the redirect
+            } else {
+                setError(result.error || 'Login failed. Please try again.');
+            }
+        } catch (error) {
+            setError('An error occurred during login. Please try again.');
+            console.error('Login error:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -61,6 +77,7 @@ const LoginPage = ({ onLogin }) => {
                             placeholder="Enter admin email"
                             className="w-full px-4 py-3 border border-border-color rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-center"
                             required
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -77,11 +94,13 @@ const LoginPage = ({ onLogin }) => {
                                 placeholder="Enter password"
                                 className="text-center w-full px-4 py-3 border border-border-color rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                                 required
+                                disabled={isLoading}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute inset-y-0 right-0 px-4 flex items-center text-text-secondary"
+                                disabled={isLoading}
                             >
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
@@ -90,9 +109,10 @@ const LoginPage = ({ onLogin }) => {
 
                     <button
                         type="submit"
-                        className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                        disabled={isLoading}
+                        className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Login
+                        {isLoading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
@@ -104,7 +124,8 @@ const LoginPage = ({ onLogin }) => {
 
                 <button
                     onClick={() => alert('Google Login Not Implemented for Admin')}
-                    className="w-full flex justify-center items-center py-3 px-4 border border-border-color rounded-lg text-text-primary bg-white hover:bg-gray-50 transition-colors duration-300"
+                    disabled={isLoading}
+                    className="w-full flex justify-center items-center py-3 px-4 border border-border-color rounded-lg text-text-primary bg-white hover:bg-gray-50 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <GoogleIcon className="h-6 w-6 mr-3" />
                     <span className="font-medium">Sign in with Google</span>

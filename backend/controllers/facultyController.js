@@ -2,7 +2,7 @@
 
 const userModel = require('../models/userModel'); // This is your 'faculty' model
 const { hashPassword, comparePassword } = require('../utils/passwordHasher');
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken for token generation
+const { generateToken } = require('../config/jwt'); // Use the proper JWT import
 
 // Gets the profile of the authenticated faculty.
 const getMyProfile = async (req, res) => {
@@ -90,15 +90,12 @@ const loginFaculty = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        // Generate JWT
-        // IMPORTANT: Use a strong, environment-variable-stored secret in production
-        const JWT_SECRET = process.env.JWT_SECRET || 'a_very_secret_key_for_quickmark_faculty';
-
-        const token = jwt.sign(
-            { id: faculty.faculty_id, email: faculty.email, role: 'faculty' }, // Payload for the token
-            JWT_SECRET,
-            { expiresIn: '1h' } // Token expires in 1 hour
-        );
+        // Generate JWT using the proper function
+        const token = generateToken({ 
+            id: faculty.faculty_id, 
+            email: faculty.email, 
+            role: 'faculty' 
+        });
 
         // Send token and faculty details (excluding password hash)
         // Ensure you return all necessary faculty details for the frontend

@@ -1,420 +1,276 @@
-// // // // Database operations for attendance sessions and records.
-// // // const pool = require('../config/db');
+const { pool } = require('../config/db');
 
-// // // // Creates a new attendance session.
-// // // const createAttendanceSession = async (subjectId, facultyId, sessionDate, startTime, qrCodeData = null) => {
-// // //     const query = `
-// // //         INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, qr_code_data)
-// // //         VALUES ($1, $2, $3, $4, $5)
-// // //         RETURNING *;
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [subjectId, facultyId, sessionDate, startTime, qrCodeData]);
-// // //         return result.rows[0];
-// // //     } catch (error) {
-// // //         console.error('Error creating attendance session in DB:', error.message);
-// // //         throw new Error('Database insertion failed for attendance session');
-// // //     }
-// // // };
-
-// // // // Closes an active attendance session.
-// // // const closeAttendanceSession = async (sessionId, endTime) => {
-// // //     const query = `
-// // //         UPDATE attendance_sessions
-// // //         SET end_time = $1, status = 'closed', updated_at = CURRENT_TIMESTAMP
-// // //         WHERE session_id = $2 AND status = 'open'
-// // //         RETURNING *;
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [endTime, sessionId]);
-// // //         return result.rows[0] || null;
-// // //     } catch (error) {
-// // //         console.error('Error closing attendance session in DB:', error.message);
-// // //         throw new Error('Database update failed for attendance session');
-// // //     }
-// // // };
-
-// // // // Finds an active attendance session by ID.
-// // // const findActiveSessionById = async (sessionId) => {
-// // //     const query = `
-// // //         SELECT * FROM attendance_sessions
-// // //         WHERE session_id = $1 AND status = 'open';
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [sessionId]);
-// // //         return result.rows[0] || null;
-// // //     } catch (error) {
-// // //         console.error('Error finding active session in DB:', error.message);
-// // //         throw new Error('Database query failed for active session');
-// // //     }
-// // // };
-
-// // // // Finds any attendance session by its ID (active or closed).
-// // // const findSessionById = async (sessionId) => {
-// // //     const query = `
-// // //         SELECT * FROM attendance_sessions
-// // //         WHERE session_id = $1;
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [sessionId]);
-// // //         return result.rows[0] || null;
-// // //     } catch (error) {
-// // //         console.error('Error finding session by ID in DB:', error.message);
-// // //         throw new Error('Database query failed for session by ID');
-// // //     }
-// // // };
-
-// // // // Finds an open attendance session by QR code data.
-// // // const findOpenSessionByQrCode = async (qrCodeData) => {
-// // //     const query = `
-// // //         SELECT * FROM attendance_sessions
-// // //         WHERE qr_code_data = $1 AND status = 'open'
-// // //         LIMIT 1;
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [qrCodeData]);
-// // //         return result.rows[0] || null;
-// // //     } catch (error) {
-// // //         console.error('Error finding open session by QR code in DB:', error.message);
-// // //         throw new Error('Database query failed for open session by QR code');
-// // //     }
-// // // };
-
-// // // // Creates or updates an attendance record for a student in a session (UPSERT).
-// // // const createOrUpdateAttendanceRecord = async (sessionId, studentId, status, attendedAt = null) => {
-// // //     const query = `
-// // //         INSERT INTO attendance_records (session_id, student_id, status, attended_at)
-// // //         VALUES ($1, $2, $3, $4)
-// // //         ON CONFLICT (session_id, student_id) DO UPDATE SET
-// // //             status = EXCLUDED.status,
-// // //             attended_at = EXCLUDED.attended_at,
-// // //             updated_at = CURRENT_TIMESTAMP
-// // //         RETURNING *;
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [sessionId, studentId, status, attendedAt]);
-// // //         return result.rows[0];
-// // //     } catch (error) {
-// // //         console.error('Error creating/updating attendance record in DB:', error.message);
-// // //         throw new Error('Database operation failed for attendance record');
-// // //     }
-// // // };
-
-// // // // Fetches attendance records for a student in a subject within a date range.
-// // // const getStudentAttendanceBySubjectAndDateRange = async (studentId, subjectId, startDate, endDate) => {
-// // //     const query = `
-// // //         SELECT
-// // //             ar.status AS attendance_status,
-// // //             s.session_date,
-// // //             ar.attended_at
-// // //         FROM attendance_records ar
-// // //         JOIN attendance_sessions s ON ar.session_id = s.session_id
-// // //         WHERE ar.student_id = $1 AND s.subject_id = $2
-// // //             AND s.session_date BETWEEN $3 AND $4
-// // //         ORDER BY s.session_date ASC;
-// // //     `;
-// // //     try {
-// // //         const result = await pool.query(query, [studentId, subjectId, startDate, endDate]);
-// // //         return result.rows;
-// // //     } catch (error) {
-// // //         console.error('Error fetching student attendance by date range in DB:', error.message);
-// // //         throw new Error('Database query failed for student attendance by date range');
-// // //     }
-// // // };
-
-// // // module.exports = {
-// // //     createAttendanceSession,
-// // //     closeAttendanceSession,
-// // //     findActiveSessionById,
-// // //     findSessionById,
-// // //     findOpenSessionByQrCode,
-// // //     createOrUpdateAttendanceRecord,
-// // //     getStudentAttendanceBySubjectAndDateRange,
-// // // };
-
-// // const pool = require('../config/db');
-
-// // // Creates a new attendance session.
-// // const createAttendanceSession = async (subjectId, facultyId, sessionDate, startTime, qrCodeData = null) => {
-// //     const query = `
-// //         INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, qr_code_data)
-// //         VALUES ($1, $2, $3, $4, $5)
-// //         RETURNING *;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [subjectId, facultyId, sessionDate, startTime, qrCodeData]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating attendance session in DB:', error.message);
-// //         throw new Error('Database insertion failed for attendance session');
-// //     }
-// // };
-
-// // // Closes an active attendance session.
-// // const closeAttendanceSession = async (sessionId, endTime) => {
-// //     const query = `
-// //         UPDATE attendance_sessions
-// //         SET end_time = $1, status = 'closed', updated_at = CURRENT_TIMESTAMP
-// //         WHERE session_id = $2 AND status = 'open'
-// //         RETURNING *;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [endTime, sessionId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error closing attendance session in DB:', error.message);
-// //         throw new Error('Database update failed for attendance session');
-// //     }
-// // };
-
-// // // Finds an active attendance session by ID.
-// // const findActiveSessionById = async (sessionId) => {
-// //     const query = `
-// //         SELECT * FROM attendance_sessions
-// //         WHERE session_id = $1 AND status = 'open';
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [sessionId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error finding active session in DB:', error.message);
-// //         throw new Error('Database query failed for active session');
-// //     }
-// // };
-
-// // // Finds any attendance session by its ID (active or closed).
-// // const findSessionById = async (sessionId) => {
-// //     const query = `
-// //         SELECT * FROM attendance_sessions
-// //         WHERE session_id = $1;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [sessionId]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error finding session by ID in DB:', error.message);
-// //         throw new Error('Database query failed for session by ID');
-// //     }
-// // };
-
-// // // Finds an open attendance session by QR code data.
-// // const findOpenSessionByQrCode = async (qrCodeData) => {
-// //     const query = `
-// //         SELECT * FROM attendance_sessions
-// //         WHERE qr_code_data = $1 AND status = 'open'
-// //         LIMIT 1;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [qrCodeData]);
-// //         return result.rows[0] || null;
-// //     } catch (error) {
-// //         console.error('Error finding open session by QR code in DB:', error.message);
-// //         throw new Error('Database query failed for open session by QR code');
-// //     }
-// // };
-
-// // // Creates or updates an attendance record for a student in a session (UPSERT).
-// // const createOrUpdateAttendanceRecord = async (sessionId, studentId, status, attendedAt = null) => {
-// //     const query = `
-// //         INSERT INTO attendance_records (session_id, student_id, status, attended_at)
-// //         VALUES ($1, $2, $3, $4)
-// //         ON CONFLICT (session_id, student_id) DO UPDATE SET
-// //             status = EXCLUDED.status,
-// //             attended_at = EXCLUDED.attended_at,
-// //             updated_at = CURRENT_TIMESTAMP
-// //         RETURNING *;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [sessionId, studentId, status, attendedAt]);
-// //         return result.rows[0];
-// //     } catch (error) {
-// //         console.error('Error creating/updating attendance record in DB:', error.message);
-// //         throw new Error('Database operation failed');
-// //     }
-// // };
-
-// // // Fetches attendance records for a student in a subject within a date range.
-// // // NOTE: This function is now also defined in studentModel.js for direct student access.
-// // // Decide which model owns this. For Admin view, it's better to keep it in adminModel or studentModel.
-// // const getStudentAttendanceBySubjectAndDateRange = async (studentId, subjectId, startDate, endDate) => {
-// //     const query = `
-// //         SELECT
-// //             ar.status AS attendance_status,
-// //             s.session_date,
-// //             ar.attended_at
-// //         FROM attendance_records ar
-// //         JOIN attendance_sessions s ON ar.session_id = s.session_id
-// //         WHERE ar.student_id = $1 AND s.subject_id = $2
-// //             AND s.session_date BETWEEN $3 AND $4
-// //         ORDER BY s.session_date ASC;
-// //     `;
-// //     try {
-// //         const result = await pool.query(query, [studentId, subjectId, startDate, endDate]);
-// //         return result.rows;
-// //     } catch (error) {
-// //         console.error('Error fetching student attendance by date range in DB:', error.message);
-// //         throw new Error('Database query failed for student attendance by date range');
-// //     }
-// // };
-
-// // module.exports = {
-// //     createAttendanceSession,
-// //     closeAttendanceSession,
-// //     findActiveSessionById,
-// //     findSessionById,
-// //     findOpenSessionByQrCode,
-// //     createOrUpdateAttendanceRecord,
-// //     getStudentAttendanceBySubjectAndDateRange,
-// // };
-
-const pool = require('../config/db');
-
-// Creates a new attendance session.
-const createAttendanceSession = async (subjectId, facultyId, sessionDate, startTime, qrCodeData = null) => {
+// Create a new attendance session
+const createAttendanceSession = async (subjectId, facultyId, sessionDate, startTime, qrCodeData) => {
     const query = `
         INSERT INTO attendance_sessions (subject_id, faculty_id, session_date, start_time, qr_code_data)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING *;
+        RETURNING session_id, subject_id, faculty_id, session_date, start_time, qr_code_data, status;
     `;
     try {
         const result = await pool.query(query, [subjectId, facultyId, sessionDate, startTime, qrCodeData]);
         return result.rows[0];
     } catch (error) {
-        console.error('Error creating attendance session in DB:', error.message);
-        throw new Error('Database insertion failed for attendance session');
+        console.error('Error creating attendance session:', error);
+        throw new Error('Database insertion failed.');
     }
 };
 
-// Closes an active attendance session.
-const closeAttendanceSession = async (sessionId, endTime) => {
+// Get active QR session by QR code data
+const getActiveSessionByQRCode = async (qrCodeData) => {
     const query = `
-        UPDATE attendance_sessions
-        SET end_time = $1, status = 'closed', updated_at = CURRENT_TIMESTAMP
-        WHERE session_id = $2 AND status = 'open'
-        RETURNING *;
-    `;
-    try {
-        const result = await pool.query(query, [endTime, sessionId]);
-        return result.rows[0] || null;
-    } catch (error) {
-        console.error('Error closing attendance session in DB:', error.message);
-        throw new Error('Database update failed for attendance session');
-    }
-};
-
-// Finds an active attendance session by ID.
-const findActiveSessionById = async (sessionId) => {
-    const query = `
-        SELECT * FROM attendance_sessions
-        WHERE session_id = $1 AND status = 'open';
-    `;
-    try {
-        const result = await pool.query(query, [sessionId]);
-        return result.rows[0] || null;
-    } catch (error) {
-        console.error('Error finding active session in DB:', error.message);
-        throw new Error('Database query failed for active session');
-    }
-};
-
-// Finds any attendance session by its ID (active or closed).
-const findSessionById = async (sessionId) => {
-    const query = `
-        SELECT * FROM attendance_sessions
-        WHERE session_id = $1;
-    `;
-    try {
-        const result = await pool.query(query, [sessionId]);
-        return result.rows[0] || null;
-    } catch (error) {
-        console.error('Error finding session by ID in DB:', error.message);
-        throw new Error('Database query failed for session by ID');
-    }
-};
-
-// Finds an open attendance session by QR code data.
-const findOpenSessionByQrCode = async (qrCodeData) => {
-    const query = `
-        SELECT * FROM attendance_sessions
+        SELECT 
+            session_id, subject_id, faculty_id, session_date, start_time, end_time, status, qr_code_data
+        FROM attendance_sessions 
         WHERE qr_code_data = $1 AND status = 'open'
+        ORDER BY created_at DESC 
         LIMIT 1;
     `;
     try {
         const result = await pool.query(query, [qrCodeData]);
-        return result.rows[0] || null;
+        return result.rows[0];
     } catch (error) {
-        console.error('Error finding open session by QR code in DB:', error.message);
-        throw new Error('Database query failed for open session by QR code');
+        console.error('Error getting active session by QR code:', error);
+        throw new Error('Database query failed.');
     }
 };
 
-// Creates or updates an attendance record for a student in a session (UPSERT).
-const createOrUpdateAttendanceRecord = async (sessionId, studentId, status, attendedAt = null) => {
+// Mark attendance for a student
+const markAttendance = async (sessionId, studentId, status, attendedAt = null) => {
     const query = `
         INSERT INTO attendance_records (session_id, student_id, status, attended_at)
         VALUES ($1, $2, $3, $4)
-        ON CONFLICT (session_id, student_id) DO UPDATE SET
+        ON CONFLICT (session_id, student_id) 
+        DO UPDATE SET 
             status = EXCLUDED.status,
             attended_at = EXCLUDED.attended_at,
             updated_at = CURRENT_TIMESTAMP
-        RETURNING *;
+        RETURNING record_id, session_id, student_id, status, attended_at;
     `;
     try {
         const result = await pool.query(query, [sessionId, studentId, status, attendedAt]);
         return result.rows[0];
     } catch (error) {
-        console.error('Error creating/updating attendance record in DB:', error.message);
-        throw new Error('Database operation failed for attendance record');
+        console.error('Error marking attendance:', error);
+        throw new Error('Database insertion/update failed.');
     }
 };
 
-// Fetches attendance records for a student in a subject within a date range.
-const getStudentAttendanceBySubjectAndDateRange = async (studentId, subjectId, startDate, endDate) => {
+// Get attendance records for a session
+const getSessionAttendanceRecords = async (sessionId) => {
     const query = `
-        SELECT
-            ar.status AS attendance_status,
-            s.session_date,
-            ar.attended_at
+        SELECT 
+            ar.record_id,
+            ar.student_id,
+            ar.status,
+            ar.attended_at,
+            ar.created_at,
+            s.roll_number,
+            s.name,
+            s.email,
+            d.name AS department_name
         FROM attendance_records ar
-        JOIN attendance_sessions s ON ar.session_id = s.session_id
-        WHERE ar.student_id = $1 AND s.subject_id = $2
-            AND s.session_date BETWEEN $3 AND $4
-        ORDER BY s.session_date ASC;
+        JOIN students s ON ar.student_id = s.student_id
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE ar.session_id = $1
+        ORDER BY s.roll_number;
     `;
     try {
-        const result = await pool.query(query, [studentId, subjectId, startDate, endDate]);
+        const result = await pool.query(query, [sessionId]);
         return result.rows;
     } catch (error) {
-        console.error('Error fetching student attendance by date range in DB:', error.message);
-        throw new Error('Database query failed for student attendance by date range');
+        console.error('Error getting session attendance records:', error);
+        throw new Error('Database query failed.');
     }
 };
 
-// NEW: Update an existing attendance record's status by its record_id
-const updateAttendanceRecordStatus = async (recordId, newStatus) => {
+// Close an attendance session
+const closeAttendanceSession = async (sessionId, endTime) => {
     const query = `
-        UPDATE attendance_records
-        SET status = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE record_id = $2
-        RETURNING *;
+        UPDATE attendance_sessions 
+        SET status = 'closed', end_time = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE session_id = $1
+        RETURNING session_id, status, end_time;
     `;
     try {
-        const result = await pool.query(query, [newStatus, recordId]);
-        return result.rows[0] || null;
+        const result = await pool.query(query, [sessionId, endTime]);
+        return result.rows[0];
     } catch (error) {
-        console.error(`Error updating attendance record ${recordId} status to ${newStatus}:`, error.message);
-        throw new Error('Database update failed for attendance record status');
+        console.error('Error closing attendance session:', error);
+        throw new Error('Database update failed.');
     }
 };
 
+// Complete an attendance session
+const completeAttendanceSession = async (sessionId) => {
+    const query = `
+        UPDATE attendance_sessions 
+        SET status = 'completed', updated_at = CURRENT_TIMESTAMP
+        WHERE session_id = $1
+        RETURNING session_id, status;
+    `;
+    try {
+        const result = await pool.query(query, [sessionId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error completing attendance session:', error);
+        throw new Error('Database update failed.');
+    }
+};
+
+// Get faculty's attendance sessions
+const getFacultyAttendanceSessions = async (facultyId, startDate = null, endDate = null) => {
+    let query = `
+        SELECT 
+            ass.session_id,
+            ass.subject_id,
+            ass.session_date,
+            ass.start_time,
+            ass.end_time,
+            ass.status,
+            ass.qr_code_data,
+            ass.created_at,
+            s.subject_name,
+            s.year,
+            s.section,
+            d.name AS department_name,
+            COUNT(ar.record_id) AS total_students,
+            COUNT(CASE WHEN ar.status = 'present' THEN 1 END) AS present_count,
+            COUNT(CASE WHEN ar.status = 'late' THEN 1 END) AS late_count,
+            COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) AS absent_count
+        FROM attendance_sessions ass
+        JOIN subjects s ON ass.subject_id = s.subject_id
+        JOIN departments d ON s.department_id = d.department_id
+        LEFT JOIN attendance_records ar ON ass.session_id = ar.session_id
+        WHERE ass.faculty_id = $1
+    `;
+    
+    const queryParams = [facultyId];
+    let paramIndex = 2;
+    
+    if (startDate) {
+        query += ` AND ass.session_date >= $${paramIndex++}`;
+        queryParams.push(startDate);
+    }
+    
+    if (endDate) {
+        query += ` AND ass.session_date <= $${paramIndex++}`;
+        queryParams.push(endDate);
+    }
+    
+    query += `
+        GROUP BY ass.session_id, ass.subject_id, ass.session_date, ass.start_time, 
+                 ass.end_time, ass.status, ass.qr_code_data, ass.created_at,
+                 s.subject_name, s.year, s.section, d.name
+        ORDER BY ass.session_date DESC, ass.start_time DESC;
+    `;
+    
+    try {
+        const result = await pool.query(query, queryParams);
+        return result.rows;
+    } catch (error) {
+        console.error('Error getting faculty attendance sessions:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Get attendance statistics for a subject
+const getSubjectAttendanceStats = async (subjectId, startDate = null, endDate = null) => {
+    let query = `
+        SELECT 
+            ass.session_date,
+            ass.start_time,
+            ass.end_time,
+            ass.status AS session_status,
+            COUNT(ar.record_id) AS total_students,
+            COUNT(CASE WHEN ar.status = 'present' THEN 1 END) AS present_count,
+            COUNT(CASE WHEN ar.status = 'late' THEN 1 END) AS late_count,
+            COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) AS absent_count,
+            ROUND(
+                (COUNT(CASE WHEN ar.status IN ('present', 'late') THEN 1 END)::DECIMAL / 
+                NULLIF(COUNT(ar.record_id), 0)::DECIMAL) * 100, 2
+            ) AS attendance_percentage
+        FROM attendance_sessions ass
+        LEFT JOIN attendance_records ar ON ass.session_id = ar.session_id
+        WHERE ass.subject_id = $1
+    `;
+    
+    const queryParams = [subjectId];
+    let paramIndex = 2;
+    
+    if (startDate) {
+        query += ` AND ass.session_date >= $${paramIndex++}`;
+        queryParams.push(startDate);
+    }
+    
+    if (endDate) {
+        query += ` AND ass.session_date <= $${paramIndex++}`;
+        queryParams.push(endDate);
+    }
+    
+    query += `
+        GROUP BY ass.session_id, ass.session_date, ass.start_time, ass.end_time, ass.status
+        ORDER BY ass.session_date DESC, ass.start_time DESC;
+    `;
+    
+    try {
+        const result = await pool.query(query, queryParams);
+        return result.rows;
+    } catch (error) {
+        console.error('Error getting subject attendance stats:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Check if student is enrolled in subject (for QR validation)
+const isStudentEnrolledInSubject = async (studentId, subjectId) => {
+    const query = `
+        SELECT EXISTS (
+            SELECT 1 FROM enrollments
+            WHERE student_id = $1 AND subject_id = $2
+        );
+    `;
+    try {
+        const result = await pool.query(query, [studentId, subjectId]);
+        return result.rows[0].exists;
+    } catch (error) {
+        console.error('Error checking student enrollment:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Get students enrolled in a subject (for attendance marking)
+const getStudentsBySubjectId = async (subjectId) => {
+    const query = `
+        SELECT
+            s.student_id, s.roll_number, s.name, s.email,
+            d.name AS department_name
+        FROM students s
+        JOIN enrollments e ON s.student_id = e.student_id
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE e.subject_id = $1
+        ORDER BY s.roll_number;
+    `;
+    try {
+        const result = await pool.query(query, [subjectId]);
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching students by subject ID:', error);
+        throw new Error('Database query failed.');
+    }
+};
 
 module.exports = {
     createAttendanceSession,
+    getActiveSessionByQRCode,
+    findOpenSessionByQrCode: getActiveSessionByQRCode,
+    markAttendance,
+    createOrUpdateAttendanceRecord: markAttendance,
+    getSessionAttendanceRecords,
     closeAttendanceSession,
-    findActiveSessionById,
-    findSessionById,
-    findOpenSessionByQrCode,
-    createOrUpdateAttendanceRecord,
-    getStudentAttendanceBySubjectAndDateRange,
-    updateAttendanceRecordStatus, // Export new function
+    completeAttendanceSession,
+    getFacultyAttendanceSessions,
+    getSubjectAttendanceStats,
+    isStudentEnrolledInSubject,
+    getStudentsBySubjectId,
 };

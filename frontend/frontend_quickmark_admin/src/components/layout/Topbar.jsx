@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Bell, User, ArrowLeft } from 'lucide-react';
 
-export default function Topbar({ onLogout }) {
+export default function Topbar({ onLogout, showBackButton, onBack, title }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -24,13 +24,16 @@ export default function Topbar({ onLogout }) {
         {showBackButton && (
           <button
             onClick={onBack}
-            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors mr-4"
             aria-label="Go back"
           >
             <ArrowLeft size={22} />
           </button>
         )}
-        </div>
+        {title && (
+          <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+        )}
+      </div>
       <div className="flex items-center space-x-4">
         <button className="p-2 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700">
           <svg

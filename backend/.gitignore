@@ -1,11 +1,8 @@
 # Node.js
 node_modules/
 npm-debug.log
-yarn-debug.log
-yarn-error.log
-package-lock.json
 
-# Environment files
+# Environment variables
 .env
 .env.*
 
@@ -17,31 +14,44 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Editor directories and files
+# Editor folders
 .vscode/
 .idea/
-*.sublime-workspace
-*.sublime-project
 
 # Build output
 dist/
 build/
-out/
-coverage/
 
-# Python
+# Dependency directories for Python/Flutter
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
 
 # Flutter/Dart
 .dart_tool/
+build/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 pubspec.lock
-build/
 
 # Misc
-*.swp
+coverage/
+
+# Ignore database and secrets
+*.sqlite3
+*.db
 *.bak
-*.tmp
+
+# Ignore uploads/media
+uploads/
+media/
+
+# Ignore test output
+test-output/
+
+# Ignore IDE workspace files
+*.code-workspace

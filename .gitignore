@@ -7,7 +7,6 @@ package-lock.json
 
 # Environment files
 .env
-.env.*
 
 # Logs
 logs/
@@ -60,7 +59,7 @@ pubspec.lock
 
 # Environment files
 .env
-.env.*
+
 
 # OS generated files
 .DS_Store

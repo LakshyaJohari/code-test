@@ -6,6 +6,7 @@ const getAllSubjects = async () => {
         SELECT 
             s.subject_id,
             s.subject_name,
+            s.subject_code,
             s.year,
             s.section,
             s.semester,
@@ -31,6 +32,7 @@ const getSubjectsByDepartment = async (departmentId) => {
         SELECT 
             subject_id,
             subject_name,
+            subject_code,
             year,
             section,
             semester,
@@ -54,6 +56,7 @@ const getSubjectById = async (subjectId) => {
         SELECT 
             s.subject_id,
             s.subject_name,
+            s.subject_code,
             s.year,
             s.section,
             s.semester,
@@ -74,14 +77,14 @@ const getSubjectById = async (subjectId) => {
 };
 
 // Create a new subject
-const createSubject = async (subjectName, departmentId, year, section, semester) => {
+const createSubject = async (subjectName, subjectCode, departmentId, year, section, semester) => {
     const query = `
-        INSERT INTO subjects (subject_name, department_id, year, section, semester)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING subject_id, subject_name, department_id, year, section, semester;
+        INSERT INTO subjects (subject_name, subject_code, department_id, year, section, semester)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING subject_id, subject_name, subject_code, department_id, year, section, semester;
     `;
     try {
-        const result = await pool.query(query, [subjectName, departmentId, year, section, semester]);
+        const result = await pool.query(query, [subjectName, subjectCode, departmentId, year, section, semester]);
         return result.rows[0];
     } catch (error) {
         console.error('Error creating subject:', error);
@@ -96,7 +99,7 @@ const updateSubject = async (subjectId, updates) => {
     let paramIndex = 2;
 
     for (const key in updates) {
-        if (updates.hasOwnProperty(key) && ['subject_name', 'year', 'section', 'semester'].includes(key)) {
+        if (updates.hasOwnProperty(key) && ['subject_name', 'subject_code', 'year', 'section', 'semester'].includes(key)) {
             updateFields.push(`${key} = $${paramIndex++}`);
             queryParams.push(updates[key]);
         }
@@ -107,7 +110,7 @@ const updateSubject = async (subjectId, updates) => {
         UPDATE subjects
         SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
         WHERE subject_id = $1
-        RETURNING subject_id, subject_name, department_id, year, section, semester;
+        RETURNING subject_id, subject_name, subject_code, department_id, year, section, semester;
     `;
     try {
         const result = await pool.query(query, queryParams);
@@ -140,6 +143,7 @@ const getFacultySubjects = async (facultyId) => {
         SELECT 
             s.subject_id,
             s.subject_name,
+            s.subject_code,
             s.year,
             s.section,
             s.semester,
@@ -198,6 +202,35 @@ const subjectExists = async (subjectId) => {
     }
 };
 
+// Check if faculty is assigned to subject
+const isFacultyAssignedToSubject = async (facultyId, subjectId) => {
+    const query = `
+        SELECT EXISTS(
+            SELECT 1 FROM faculty_subjects 
+            WHERE faculty_id = $1 AND subject_id = $2
+        );
+    `;
+    try {
+        const result = await pool.query(query, [facultyId, subjectId]);
+        return result.rows[0].exists;
+    } catch (error) {
+        console.error('Error checking faculty assignment:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// Get subject code for QR generation
+const getSubjectCode = async (subjectId) => {
+    const query = 'SELECT subject_code FROM subjects WHERE subject_id = $1;';
+    try {
+        const result = await pool.query(query, [subjectId]);
+        return result.rows[0]?.subject_code;
+    } catch (error) {
+        console.error('Error getting subject code:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
 module.exports = {
     getAllSubjects,
     getSubjectsByDepartment,
@@ -208,4 +241,6 @@ module.exports = {
     getFacultySubjects,
     getEnrolledStudents,
     subjectExists,
+    isFacultyAssignedToSubject,
+    getSubjectCode
 };

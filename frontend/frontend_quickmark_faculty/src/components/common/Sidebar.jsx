@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, UserCheck, Book, Settings, GanttChartSquare } from 'lucide-react';
+import { LayoutDashboard, UserCheck, Book, Settings, GanttChartSquare, LogOut } from 'lucide-react';
 
 // Sidebar navigation items
 const navItems = [
@@ -9,7 +9,7 @@ const navItems = [
   { name: 'Settings', icon: Settings, route: '/settings' },
 ];
 
-const Sidebar = ({ currentRoute, onNavigate }) => {
+const Sidebar = ({ currentRoute, onNavigate, onLogout }) => {
   return (
     <aside className="w-64 bg-white shadow-md flex-col hidden sm:flex">
       {/* Logo Section */}
@@ -38,6 +38,17 @@ const Sidebar = ({ currentRoute, onNavigate }) => {
           ))}
         </ul>
       </nav>
+
+      {/* Logout Button */}
+      <div className="px-6 pb-4">
+        <button
+          onClick={onLogout}
+          className="group flex items-center justify-center rounded-lg bg-red-500 px-4 py-2 font-bold text-white shadow-md transition-all duration-300 ease-in-out hover:bg-red-600 hover:shadow-lg w-full"
+        >
+          <LogOut className="mr-2 h-5 w-5 transition-transform duration-300 ease-in-out group-hover:scale-110" />
+          Logout
+        </button>
+      </div>
     </aside>
   );
 };

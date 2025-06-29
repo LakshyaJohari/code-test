@@ -35,14 +35,10 @@ const LoginPage = ({ onLogin }) => {
 
         setIsLoading(true);
         try {
-            const result = await onLogin(email, password);
-            if (result.success) {
-                // Login successful, App.jsx will handle the redirect
-            } else {
-                setError(result.error || 'Login failed. Please try again.');
-            }
+            await onLogin(email, password);
+            // Login successful, App.jsx will handle the redirect
         } catch (error) {
-            setError('An error occurred during login. Please try again.');
+            setError(error.message || 'Login failed. Please try again.');
             console.error('Login error:', error);
         } finally {
             setIsLoading(false);

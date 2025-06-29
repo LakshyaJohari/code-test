@@ -18,7 +18,11 @@ import Calendar from './pages/Calendar';
 import Sidebar from './components/common/Sidebar';
 import Navbar from './components/common/Navbar';
 
-// Mock Data
+// Import API
+import { subjectsAPI } from './api/subjects';
+import { authAPI } from './api/auth';
+
+// Mock Data (keeping for fallback)
 const mockUser = {
   name: 'Dr. Mukesh Adani',
   designation: 'Assistant Professor',
@@ -42,7 +46,6 @@ const mockStudents = {
     5: []
 };
 
-
 function App() {
   useEffect(() => {
     const favicon = document.querySelector("link[rel='icon']");
@@ -55,16 +58,119 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [route, setRoute] = useState('/login');
   const [selectedSubject, setSelectedSubject] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null); // State for the clicked student
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [user, setUser] = useState(null); // Store real user data
+  const [subjects, setSubjects] = useState([]); // Real subjects data
+  const [students, setStudents] = useState({}); // Real students data
+  const [loading, setLoading] = useState(false);
+
+  // Fetch real subjects data
+  const fetchSubjects = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setLoading(true);
+      const realSubjects = await subjectsAPI.getMySubjects();
+      setSubjects(realSubjects);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      // Fallback to mock data if API fails
+      setSubjects(mockSubjects);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch real students data for a subject
+  const fetchStudentsForSubject = async (subjectId) => {
+    try {
+      const realStudents = await subjectsAPI.getSubjectStudents(subjectId);
+      setStudents(prev => ({
+        ...prev,
+        [subjectId]: realStudents
+      }));
+    } catch (error) {
+      console.error('Error fetching students for subject:', error);
+      // Fallback to mock data if API fails
+      setStudents(prev => ({
+        ...prev,
+        [subjectId]: mockStudents[subjectId] || []
+      }));
+    }
+  };
+
+  // Fetch real faculty data
+  const fetchFacultyData = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setLoading(true);
+      
+      // Try to get faculty profile from API
+      const facultyProfile = await authAPI.getProfile();
+      
+      // Create real user object with API data
+      const realUser = {
+        name: facultyProfile.name || 'Faculty Member',
+        email: facultyProfile.email || '',
+        designation: facultyProfile.designation || 'Faculty',
+        subjectsTaught: subjects.map(s => s.subject_name || s.name), // Use real subjects
+        avatar: `https://placehold.co/100x100/E2E8F0/4A5568?text=${facultyProfile.name?.charAt(0) || 'F'}`
+      };
+      
+      setUser(realUser);
+    } catch (error) {
+      console.error('Error fetching faculty data:', error);
+      
+      // Fallback to localStorage data if API fails
+      const facultyName = localStorage.getItem('userName');
+      const facultyEmail = localStorage.getItem('userEmail');
+      
+      const fallbackUser = {
+        name: facultyName || 'Faculty Member',
+        email: facultyEmail || '',
+        designation: 'Faculty',
+        subjectsTaught: subjects.map(s => s.subject_name || s.name),
+        avatar: `https://placehold.co/100x100/E2E8F0/4A5568?text=${facultyName?.charAt(0) || 'F'}`
+      };
+      
+      setUser(fallbackUser);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch subjects when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSubjects();
+      fetchFacultyData();
+    }
+  }, [isAuthenticated]);
 
   // Navigation Functions
   const navigate = (newRoute) => setRoute(newRoute);
 
-  const handleLogin = () => { setIsAuthenticated(true); navigate('/dashboard'); };
-  const handleLogout = () => { setIsAuthenticated(false); navigate('/login'); };
+  const handleLogin = (token, userData) => { 
+    setIsAuthenticated(true); 
+    setUser(userData);
+    navigate('/dashboard'); 
+  };
+  
+  const handleLogout = () => { 
+    setIsAuthenticated(false); 
+    setUser(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    navigate('/login'); 
+  };
   
   const handleSelectSubject = (subject) => {
     setSelectedSubject(subject);
+    // Fetch students for this subject
+    fetchStudentsForSubject(subject.id);
     navigate('/subject-detail');
   };
 
@@ -87,17 +193,17 @@ function App() {
     }
     switch (route) {
       case '/dashboard':
-        return <Dashboard user={mockUser} subjects={mockSubjects} students={mockStudents}/>;
+        return <Dashboard user={user || mockUser} subjects={subjects} students={students}/>;
       case '/mark-attendance':
-        return <MarkAttendance subjects={mockSubjects} onStart={handleStartQR} />;
+        return <MarkAttendance subjects={subjects} onStart={handleStartQR} />;
       case '/subjects':
-        return <Subjects subjects={mockSubjects} onSelectSubject={handleSelectSubject} />;
+        return <Subjects subjects={subjects} onSelectSubject={handleSelectSubject} />;
       
       // We pass the handleViewStudentCalendar function as the onSelectStudent prop
       case '/subject-detail':
         return <SubjectDetail 
                   subject={selectedSubject} 
-                  students={mockStudents[selectedSubject?.id] || []} 
+                  students={students[selectedSubject?.id] || []} 
                   onBack={() => navigate('/subjects')} 
                   onSelectStudent={handleViewStudentCalendar}
                />;
@@ -114,19 +220,19 @@ function App() {
                 />;
 
       case '/profile':
-        return <Profile user={mockUser} onLogout={handleLogout}/>;
+        return <Profile user={user || mockUser} onLogout={handleLogout}/>;
       case '/settings':
         return <Settings />;
       default:
-        return <Dashboard user={mockUser} subjects={mockSubjects} students={mockStudents}/>;
+        return <Dashboard user={user || mockUser} subjects={subjects} students={students}/>;
     }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {isAuthenticated && <Sidebar currentRoute={route} onNavigate={navigate} />}
+      {isAuthenticated && <Sidebar currentRoute={route} onNavigate={navigate} onLogout={handleLogout} />}
       <div className="flex-1 flex flex-col">
-        {isAuthenticated && <Navbar user={mockUser} onNavigate={navigate} />}
+        {isAuthenticated && <Navbar user={user || mockUser} onNavigate={navigate} currentRoute={route} />}
         <main className="p-4 sm:p-6 md:p-8 flex-1">
             {renderContent()}
         </main>

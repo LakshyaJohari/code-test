@@ -14,7 +14,7 @@ const registerFaculty = async (req, res) => {
         }
         const hashedPassword = await hashPassword(password);
         const newFaculty = await userModel.createFaculty(name, email, hashedPassword, department_id);
-        const token = generateToken({ id: newFaculty.faculty_id, email: newFaculty.email });
+        const token = generateToken({ id: newFaculty.faculty_id, email: newFaculty.email, isFaculty: true });
         res.status(201).json({
             message: 'Faculty registered successfully!',
             faculty: {
@@ -64,7 +64,7 @@ const loginFaculty = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        const token = generateToken({ id: faculty.faculty_id, email: faculty.email });
+        const token = generateToken({ id: faculty.faculty_id, email: faculty.email, isFaculty: true });
         res.status(200).json({
             message: 'Logged in successfully!',
             faculty: {

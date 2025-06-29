@@ -22,19 +22,40 @@ const apiRequest = async (endpoint, options = {}) => {
     ...options,
   };
 
+  console.log('🌐 API Request:', {
+    url: `${API_BASE_URL}${endpoint}`,
+    method: config.method || 'GET',
+    headers: config.headers,
+    body: config.body ? JSON.parse(config.body) : undefined
+  });
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  
+  console.log('📡 Response status:', response.status);
+  
   return handleResponse(response);
 };
 
 // Authentication APIs
 export const authAPI = {
   login: async (email, password) => {
+    console.log('🔐 Login attempt with:', { email, password: '***' });
+    console.log('🔍 Current localStorage token:', localStorage.getItem('adminToken'));
+    
+    // Clear any existing token before login
+    localStorage.removeItem('adminToken');
+    console.log('🧹 Cleared existing token');
+    
     const response = await apiRequest('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+    
+    console.log('📥 Login response:', response);
+    
     if (response.token) {
       localStorage.setItem('adminToken', response.token);
+      console.log('💾 Token saved to localStorage');
     }
     return response;
   },
@@ -233,9 +254,13 @@ export const settingsAPI = {
   },
 
   updateAttendanceThreshold: async (threshold) => {
+    const numericThreshold = parseInt(threshold, 10);
+    if (isNaN(numericThreshold) || numericThreshold < 0 || numericThreshold > 100) {
+      throw new Error('Threshold must be a number between 0 and 100.');
+    }
     return await apiRequest('/admin/settings/attendance-threshold', {
       method: 'PUT',
-      body: JSON.stringify({ threshold }),
+      body: JSON.stringify({ threshold: numericThreshold }),
     });
   },
 };
@@ -270,6 +295,13 @@ export const reportsAPI = {
       method: 'GET',
       responseType: 'blob',
     });
+  },
+
+  // Get student calendar attendance (for admin viewing student attendance)
+  getStudentCalendarAttendance: async (subjectId, studentId, month, year) => {
+    const url = `/attendance/admin/subjects/${subjectId}/students/${studentId}/calendar?month=${month}&year=${year}`;
+    console.log('🌐 Admin Calendar API - Calling URL:', url);
+    return await apiRequest(url);
   },
 };
 
@@ -414,6 +446,52 @@ export const healthCheck = async () => {
   }
 };
 
+// Faculty Assignment APIs
+export const facultyAssignmentAPI = {
+  assignSubjectToFaculty: async (facultyId, subjectId) => {
+    return await apiRequest('/admin/faculty/assign-subject', {
+      method: 'POST',
+      body: JSON.stringify({ faculty_id: facultyId, subject_id: subjectId }),
+    });
+  },
+
+  removeSubjectFromFaculty: async (facultyId, subjectId) => {
+    return await apiRequest('/admin/faculty/remove-subject', {
+      method: 'DELETE',
+      body: JSON.stringify({ faculty_id: facultyId, subject_id: subjectId }),
+    });
+  },
+
+  getFacultyAssignments: async (facultyId) => {
+    return await apiRequest(`/admin/faculty/${facultyId}/assignments`);
+  },
+};
+
+// Student Enrollment APIs
+export const studentEnrollmentAPI = {
+  enrollStudentInSubject: async (studentId, subjectId) => {
+    return await apiRequest('/admin/students/enroll-subject', {
+      method: 'POST',
+      body: JSON.stringify({ student_id: studentId, subject_id: subjectId }),
+    });
+  },
+
+  removeStudentFromSubject: async (studentId, subjectId) => {
+    return await apiRequest('/admin/students/remove-subject', {
+      method: 'DELETE',
+      body: JSON.stringify({ student_id: studentId, subject_id: subjectId }),
+    });
+  },
+
+  getStudentEnrollments: async (studentId) => {
+    return await apiRequest(`/admin/students/${studentId}/enrollments`);
+  },
+
+  getSubjectEnrollments: async (subjectId) => {
+    return await apiRequest(`/admin/subjects/${subjectId}/enrollments`);
+  },
+};
+
 export default {
   auth: authAPI,
   dashboard: dashboardAPI,
@@ -425,4 +503,6 @@ export default {
   reports: reportsAPI,
   transformers: dataTransformers,
   healthCheck,
+  facultyAssignment: facultyAssignmentAPI,
+  studentEnrollment: studentEnrollmentAPI,
 };

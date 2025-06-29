@@ -51,7 +51,7 @@ const LoginPage = ({ onLogin }) => { // onLogin is correctly destructured here
 
         try {
             // Correct API endpoint for faculty login
-            const response = await axios.post('http://localhost:3700/api/faculty/login', {
+            const response = await axios.post('http://localhost:3700/api/auth/login', {
                 email,
                 password,
             });

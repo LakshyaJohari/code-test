@@ -15,7 +15,7 @@ const findFacultyByEmail = async (email) => {
 
 // Find a faculty by ID (for profile operations)
 const findFacultyById = async (facultyId) => {
-    const query = 'SELECT faculty_id, name, email, department_id FROM faculties WHERE faculty_id = $1;';
+    const query = 'SELECT faculty_id, name, email, department_id, designation FROM faculties WHERE faculty_id = $1;';
     try {
         const result = await pool.query(query, [facultyId]);
         return result.rows[0];
@@ -48,7 +48,7 @@ const updateFacultyProfile = async (facultyId, updates) => {
     let paramIndex = 2;
 
     for (const key in updates) {
-        if (updates.hasOwnProperty(key) && ['name', 'email', 'department_id'].includes(key)) {
+        if (updates.hasOwnProperty(key) && ['name', 'email', 'department_id', 'designation'].includes(key)) {
             updateFields.push(`${key} = $${paramIndex++}`);
             queryParams.push(updates[key]);
         }
@@ -59,7 +59,7 @@ const updateFacultyProfile = async (facultyId, updates) => {
         UPDATE faculties
         SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
         WHERE faculty_id = $1
-        RETURNING faculty_id, name, email, department_id;
+        RETURNING faculty_id, name, email, department_id, designation;
     `;
     try {
         const result = await pool.query(query, queryParams);

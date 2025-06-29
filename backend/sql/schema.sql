@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS faculties (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     department_id UUID,
+    designation VARCHAR(100) DEFAULT 'Faculty',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_department
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS admins (
 CREATE TABLE IF NOT EXISTS subjects (
     subject_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_name VARCHAR(255) NOT NULL,
+    subject_code VARCHAR(10) NOT NULL, -- Added for QR naming (e.g., DEL, CS, MATH)
     department_id UUID NOT NULL,
     year INT NOT NULL,
     section VARCHAR(10) NOT NULL,
@@ -44,7 +46,8 @@ CREATE TABLE IF NOT EXISTS subjects (
         FOREIGN KEY(department_id)
         REFERENCES departments(department_id)
         ON DELETE RESTRICT,
-    UNIQUE (subject_name, department_id, year, section, semester)
+    UNIQUE (subject_name, department_id, year, section, semester),
+    UNIQUE (subject_code, department_id, year, section, semester)
 );
 
 CREATE TABLE IF NOT EXISTS faculty_subjects (
@@ -93,6 +96,8 @@ CREATE TABLE IF NOT EXISTS attendance_sessions (
     end_time TIME WITH TIME ZONE,
     status ATTENDANCE_STATUS DEFAULT 'open',
     qr_code_data TEXT,
+    qr_sequence_number INT DEFAULT 0, -- Added: Track QR sequence within session
+    qr_expires_at TIMESTAMP WITH TIME ZONE, -- Added: QR expiration timestamp
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE,
@@ -135,6 +140,10 @@ CREATE INDEX IF NOT EXISTS idx_attendance_sessions_qrcode_status ON attendance_s
 -- ===== HIGH-CONCURRENCY OPTIMIZATION INDEXES =====
 -- Critical for QR performance: Active QR sessions only
 CREATE INDEX idx_attendance_sessions_qrcode_active ON attendance_sessions(qr_code_data) WHERE status = 'open';
+
+-- New indexes for QR sequence and expiration
+CREATE INDEX idx_attendance_sessions_qr_expires ON attendance_sessions(qr_expires_at) WHERE status = 'open';
+CREATE INDEX idx_attendance_sessions_sequence ON attendance_sessions(session_id, qr_sequence_number);
 
 -- Optimize attendance record lookups
 CREATE INDEX idx_attendance_records_session_status ON attendance_records(session_id, status);

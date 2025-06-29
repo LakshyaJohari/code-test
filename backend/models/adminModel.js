@@ -180,6 +180,7 @@ const getAllFaculties = async (page = 1, limit = 10) => {
             f.faculty_id,
             f.name,
             f.email,
+            f.designation,
             f.created_at,
             f.updated_at,
             d.name AS department_name,
@@ -213,34 +214,58 @@ const getAllFaculties = async (page = 1, limit = 10) => {
 };
 
 // Create faculty by admin
-const createFacultyByAdmin = async (name, email, password, departmentId) => {
+const createFacultyByAdmin = async (name, email, password, departmentId, subjectIds = []) => {
     const { hashPassword } = require('../utils/passwordHasher');
     const hashedPassword = await hashPassword(password);
     
-    const query = `
-        INSERT INTO faculties (name, email, password_hash, department_id)
-        VALUES ($1, $2, $3, $4)
-        RETURNING faculty_id, name, email, department_id;
-    `;
+    const client = await pool.connect();
+    
     try {
-        const result = await pool.query(query, [name, email, hashedPassword, departmentId]);
-        return result.rows[0];
+        await client.query('BEGIN');
+        
+        // Create the faculty member
+        const facultyQuery = `
+            INSERT INTO faculties (name, email, password_hash, department_id, designation)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING faculty_id, name, email, department_id, designation;
+        `;
+        const facultyResult = await client.query(facultyQuery, [name, email, hashedPassword, departmentId, 'Faculty']);
+        const faculty = facultyResult.rows[0];
+        
+        // Assign subjects if provided
+        if (subjectIds && subjectIds.length > 0) {
+            for (const subjectId of subjectIds) {
+                const assignmentQuery = `
+                    INSERT INTO faculty_subjects (faculty_id, subject_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT (faculty_id, subject_id) DO NOTHING
+                `;
+                await client.query(assignmentQuery, [faculty.faculty_id, subjectId]);
+            }
+        }
+        
+        await client.query('COMMIT');
+        return faculty;
+        
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error creating faculty:', error);
         throw new Error('Database insertion failed.');
+    } finally {
+        client.release();
     }
 };
 
 // Update faculty
-const updateFaculty = async (facultyId, name, email, departmentId) => {
+const updateFaculty = async (facultyId, name, email, departmentId, designation) => {
     const query = `
         UPDATE faculties
-        SET name = $2, email = $3, department_id = $4, updated_at = CURRENT_TIMESTAMP
+        SET name = $2, email = $3, department_id = $4, designation = $5, updated_at = CURRENT_TIMESTAMP
         WHERE faculty_id = $1
-        RETURNING faculty_id, name, email, department_id;
+        RETURNING faculty_id, name, email, department_id, designation;
     `;
     try {
-        const result = await pool.query(query, [facultyId, name, email, departmentId]);
+        const result = await pool.query(query, [facultyId, name, email, departmentId, designation]);
         return result.rows[0] || null;
     } catch (error) {
         console.error('Error updating faculty:', error);
@@ -312,34 +337,122 @@ const createStudent = async (rollNumber, name, email, departmentId, currentYear,
     const { hashPassword } = require('../utils/passwordHasher');
     const hashedPassword = await hashPassword('password123'); // Default password
     
-    const query = `
-        INSERT INTO students (roll_number, name, email, password_hash, department_id, current_year, section)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING student_id, roll_number, name, email, department_id, current_year, section;
-    `;
+    const client = await pool.connect();
+    
     try {
-        const result = await pool.query(query, [rollNumber, name, email, hashedPassword, departmentId, currentYear, section]);
-        return result.rows[0];
+        await client.query('BEGIN');
+        
+        // Create the student
+        const studentQuery = `
+            INSERT INTO students (roll_number, name, email, password_hash, department_id, current_year, section)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING student_id, roll_number, name, email, department_id, current_year, section;
+        `;
+        const studentResult = await client.query(studentQuery, [rollNumber, name, email, hashedPassword, departmentId, currentYear, section]);
+        const student = studentResult.rows[0];
+        
+        // Get subjects for the student's department, year, and semester
+        // For now, we'll assume semester 1 for all students (can be made configurable later)
+        const semester = 1;
+        const subjectsQuery = `
+            SELECT subject_id FROM subjects 
+            WHERE department_id = $1 AND year = $2 AND semester = $3
+        `;
+        const subjectsResult = await client.query(subjectsQuery, [departmentId, currentYear, semester]);
+        
+        // Enroll student in all matching subjects
+        for (const subject of subjectsResult.rows) {
+            const enrollmentQuery = `
+                INSERT INTO enrollments (student_id, subject_id)
+                VALUES ($1, $2)
+                ON CONFLICT (student_id, subject_id) DO NOTHING
+            `;
+            await client.query(enrollmentQuery, [student.student_id, subject.subject_id]);
+        }
+        
+        await client.query('COMMIT');
+        
+        console.log(`✅ Created student: ${name} and enrolled in ${subjectsResult.rows.length} subjects`);
+        return student;
+        
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error creating student:', error);
         throw new Error('Database insertion failed.');
+    } finally {
+        client.release();
     }
 };
 
 // Update student
 const updateStudent = async (studentId, rollNumber, name, email, departmentId, currentYear, section) => {
-    const query = `
-        UPDATE students
-        SET roll_number = $2, name = $3, email = $4, department_id = $5, current_year = $6, section = $7, updated_at = CURRENT_TIMESTAMP
-        WHERE student_id = $1
-        RETURNING student_id, roll_number, name, email, department_id, current_year, section;
-    `;
+    const client = await pool.connect();
+    
     try {
-        const result = await pool.query(query, [studentId, rollNumber, name, email, departmentId, currentYear, section]);
-        return result.rows[0] || null;
+        await client.query('BEGIN');
+        
+        // Get current student data to check for changes
+        const currentStudentQuery = `
+            SELECT department_id, current_year FROM students WHERE student_id = $1
+        `;
+        const currentStudentResult = await client.query(currentStudentQuery, [studentId]);
+        const currentStudent = currentStudentResult.rows[0];
+        
+        if (!currentStudent) {
+            throw new Error('Student not found');
+        }
+        
+        // Update the student
+        const updateQuery = `
+            UPDATE students
+            SET roll_number = $2, name = $3, email = $4, department_id = $5, current_year = $6, section = $7, updated_at = CURRENT_TIMESTAMP
+            WHERE student_id = $1
+            RETURNING student_id, roll_number, name, email, department_id, current_year, section;
+        `;
+        const result = await client.query(updateQuery, [studentId, rollNumber, name, email, departmentId, currentYear, section]);
+        const updatedStudent = result.rows[0];
+        
+        // Check if department or year changed (semester is assumed to be 1)
+        const semester = 1;
+        const departmentChanged = currentStudent.department_id !== departmentId;
+        const yearChanged = currentStudent.current_year !== currentYear;
+        
+        if (departmentChanged || yearChanged) {
+            // Remove old enrollments
+            const removeEnrollmentsQuery = `
+                DELETE FROM enrollments WHERE student_id = $1
+            `;
+            await client.query(removeEnrollmentsQuery, [studentId]);
+            
+            // Add new enrollments based on new department/year
+            const subjectsQuery = `
+                SELECT subject_id FROM subjects 
+                WHERE department_id = $1 AND year = $2 AND semester = $3
+            `;
+            const subjectsResult = await client.query(subjectsQuery, [departmentId, currentYear, semester]);
+            
+            // Enroll student in new subjects
+            for (const subject of subjectsResult.rows) {
+                const enrollmentQuery = `
+                    INSERT INTO enrollments (student_id, subject_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT (student_id, subject_id) DO NOTHING
+                `;
+                await client.query(enrollmentQuery, [studentId, subject.subject_id]);
+            }
+            
+            console.log(`✅ Updated student: ${name} and re-enrolled in ${subjectsResult.rows.length} subjects`);
+        }
+        
+        await client.query('COMMIT');
+        return updatedStudent;
+        
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error updating student:', error);
         throw new Error('Database update failed.');
+    } finally {
+        client.release();
     }
 };
 
@@ -371,9 +484,13 @@ const getAllSubjects = async (page = 1, limit = 10, searchTerm = '', filterYear 
             s.semester,
             s.created_at,
             d.name AS department_name,
-            d.department_id
+            d.department_id,
+            COALESCE(f.name, 'TBD') AS faculty_name,
+            f.faculty_id
         FROM subjects s
         JOIN departments d ON s.department_id = d.department_id
+        LEFT JOIN faculty_subjects fs ON s.subject_id = fs.subject_id
+        LEFT JOIN faculties f ON fs.faculty_id = f.faculty_id
         WHERE 1=1
     `;
     
@@ -728,6 +845,148 @@ const getAttendanceStats = async (startDate = null, endDate = null) => {
     }
 };
 
+// --- FACULTY ASSIGNMENT MANAGEMENT ---
+const assignSubjectToFaculty = async (facultyId, subjectId) => {
+    const query = `
+        INSERT INTO faculty_subjects (faculty_id, subject_id)
+        VALUES ($1, $2)
+        ON CONFLICT (faculty_id, subject_id) DO NOTHING
+        RETURNING faculty_id, subject_id;
+    `;
+    try {
+        const result = await pool.query(query, [facultyId, subjectId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error assigning subject to faculty:', error);
+        throw new Error('Database assignment failed.');
+    }
+};
+
+const removeSubjectFromFaculty = async (facultyId, subjectId) => {
+    const query = `
+        DELETE FROM faculty_subjects
+        WHERE faculty_id = $1 AND subject_id = $2
+        RETURNING faculty_id, subject_id;
+    `;
+    try {
+        const result = await pool.query(query, [facultyId, subjectId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error removing subject from faculty:', error);
+        throw new Error('Database removal failed.');
+    }
+};
+
+const getFacultyAssignments = async (facultyId) => {
+    const query = `
+        SELECT 
+            fs.faculty_id,
+            fs.subject_id,
+            s.subject_name,
+            s.year,
+            s.section,
+            s.semester,
+            d.name AS department_name
+        FROM faculty_subjects fs
+        JOIN subjects s ON fs.subject_id = s.subject_id
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE fs.faculty_id = $1
+        ORDER BY s.subject_name;
+    `;
+    try {
+        const result = await pool.query(query, [facultyId]);
+        return result.rows;
+    } catch (error) {
+        console.error('Error getting faculty assignments:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+// --- STUDENT ENROLLMENT MANAGEMENT ---
+const enrollStudentInSubject = async (studentId, subjectId) => {
+    const query = `
+        INSERT INTO enrollments (student_id, subject_id)
+        VALUES ($1, $2)
+        ON CONFLICT (student_id, subject_id) DO NOTHING
+        RETURNING enrollment_id, student_id, subject_id;
+    `;
+    try {
+        const result = await pool.query(query, [studentId, subjectId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error enrolling student in subject:', error);
+        throw new Error('Database enrollment failed.');
+    }
+};
+
+const removeStudentFromSubject = async (studentId, subjectId) => {
+    const query = `
+        DELETE FROM enrollments
+        WHERE student_id = $1 AND subject_id = $2
+        RETURNING enrollment_id, student_id, subject_id;
+    `;
+    try {
+        const result = await pool.query(query, [studentId, subjectId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error removing student from subject:', error);
+        throw new Error('Database removal failed.');
+    }
+};
+
+const getStudentEnrollments = async (studentId) => {
+    const query = `
+        SELECT 
+            e.enrollment_id,
+            e.student_id,
+            e.subject_id,
+            e.enrolled_at,
+            s.subject_name,
+            s.year,
+            s.section,
+            s.semester,
+            d.name AS department_name
+        FROM enrollments e
+        JOIN subjects s ON e.subject_id = s.subject_id
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE e.student_id = $1
+        ORDER BY s.subject_name;
+    `;
+    try {
+        const result = await pool.query(query, [studentId]);
+        return result.rows;
+    } catch (error) {
+        console.error('Error getting student enrollments:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
+const getSubjectEnrollments = async (subjectId) => {
+    const query = `
+        SELECT 
+            e.enrollment_id,
+            e.student_id,
+            e.subject_id,
+            e.enrolled_at,
+            s.name AS student_name,
+            s.roll_number,
+            s.email,
+            d.name AS department_name
+        FROM enrollments e
+        JOIN students s ON e.student_id = s.student_id
+        JOIN departments d ON s.department_id = d.department_id
+        WHERE e.subject_id = $1
+        ORDER BY s.name;
+    `;
+    try {
+        const result = await pool.query(query, [subjectId]);
+        return result.rows;
+    } catch (error) {
+        console.error('Error getting subject enrollments:', error);
+        throw new Error('Database query failed.');
+    }
+};
+
 module.exports = {
     findAdminByEmail,
     findAdminById,
@@ -759,4 +1018,11 @@ module.exports = {
     getStudentsForAttendanceSheet,
     getDashboardStats,
     getAttendanceStats,
+    assignSubjectToFaculty,
+    removeSubjectFromFaculty,
+    getFacultyAssignments,
+    enrollStudentInSubject,
+    removeStudentFromSubject,
+    getStudentEnrollments,
+    getSubjectEnrollments,
 };

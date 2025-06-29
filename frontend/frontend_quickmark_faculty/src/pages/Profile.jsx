@@ -1,5 +1,5 @@
 import React from "react";
-import { LogOut } from 'lucide-react';
+import { LogOut, Mail, BookOpen } from 'lucide-react';
 
 const Profile = ({ user, onLogout }) => {
   return (
@@ -28,18 +28,31 @@ const Profile = ({ user, onLogout }) => {
             <p className="text-text-secondary text-lg mt-1">
               {user.designation}
             </p>
+            
+            {/* Email */}
+            {user.email && (
+              <div className="flex items-center mt-2 text-text-secondary">
+                <Mail className="h-4 w-4 mr-2" />
+                <span>{user.email}</span>
+              </div>
+            )}
 
             <div className="mt-8 border-t border-border-color pt-6">
-              <h4 className="font-semibold text-text-primary mb-3">
+              <h4 className="font-semibold text-text-primary mb-3 flex items-center">
+                <BookOpen className="h-5 w-5 mr-2" />
                 Subjects Taught
               </h4>
-              <ul className="space-y-2">
-                {user.subjectsTaught.map((subject, index) => (
-                  <li key={index} className="text-text-secondary">
-                    {subject}
-                  </li>
-                ))}
-              </ul>
+              {user.subjectsTaught && user.subjectsTaught.length > 0 ? (
+                <ul className="space-y-2">
+                  {user.subjectsTaught.map((subject, index) => (
+                    <li key={index} className="text-text-secondary bg-gray-50 px-3 py-2 rounded-lg">
+                      {subject}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-text-secondary italic">No subjects assigned yet.</p>
+              )}
             </div>
           </div>
         </div>

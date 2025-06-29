@@ -138,12 +138,12 @@ const getFaculties = async (req, res) => {
 };
 
 const createFaculty = async (req, res) => {
-    const { name, email, password, department_id } = req.body;
+    const { name, email, password, department_id, subject_ids } = req.body;
     if (!name || !email || !password || !department_id) {
         return res.status(400).json({ message: 'All faculty fields are required.' });
     }
     try {
-        const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id);
+        const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id, subject_ids || []);
         res.status(201).json({ message: 'Faculty created successfully.', faculty: newFaculty });
     } catch (error) {
         console.error('Error creating faculty:', error);
@@ -153,12 +153,12 @@ const createFaculty = async (req, res) => {
 
 const updateFaculty = async (req, res) => {
     const { faculty_id } = req.params;
-    const { name, email, department_id } = req.body;
+    const { name, email, department_id, designation } = req.body;
     if (!name || !email || !department_id) {
-        return res.status(400).json({ message: 'All faculty fields are required for update.' });
+        return res.status(400).json({ message: 'Name, email, and department are required for update.' });
     }
     try {
-        const updatedFaculty = await adminModel.updateFaculty(faculty_id, name, email, department_id);
+        const updatedFaculty = await adminModel.updateFaculty(faculty_id, name, email, department_id, designation || 'Faculty');
         if (!updatedFaculty) {
             return res.status(404).json({ message: 'Faculty not found.' });
         }
@@ -430,6 +430,106 @@ const getDefaultersList = async (req, res) => {
     }
 };
 
+// --- FACULTY ASSIGNMENT MANAGEMENT ---
+const assignSubjectToFaculty = async (req, res) => {
+    const { faculty_id, subject_id } = req.body;
+    if (!faculty_id || !subject_id) {
+        return res.status(400).json({ message: 'Faculty ID and Subject ID are required.' });
+    }
+    try {
+        await adminModel.assignSubjectToFaculty(faculty_id, subject_id);
+        res.status(200).json({ message: 'Subject assigned to faculty successfully.' });
+    } catch (error) {
+        console.error('Error assigning subject to faculty:', error);
+        res.status(500).json({ message: 'Internal server error assigning subject to faculty.' });
+    }
+};
+
+const removeSubjectFromFaculty = async (req, res) => {
+    console.log('removeSubjectFromFaculty called with body:', req.body);
+    console.log('Request method:', req.method);
+    console.log('Request headers:', req.headers);
+    
+    const { faculty_id, subject_id } = req.body;
+    console.log('Extracted faculty_id:', faculty_id, 'subject_id:', subject_id);
+    
+    if (!faculty_id || !subject_id) {
+        console.log('Missing required fields - faculty_id:', faculty_id, 'subject_id:', subject_id);
+        return res.status(400).json({ message: 'Faculty ID and Subject ID are required.' });
+    }
+    try {
+        console.log('Calling adminModel.removeSubjectFromFaculty with:', faculty_id, subject_id);
+        await adminModel.removeSubjectFromFaculty(faculty_id, subject_id);
+        console.log('Successfully removed subject from faculty');
+        res.status(200).json({ message: 'Subject removed from faculty successfully.' });
+    } catch (error) {
+        console.error('Error removing subject from faculty:', error);
+        res.status(500).json({ message: 'Internal server error removing subject from faculty.' });
+    }
+};
+
+const getFacultyAssignments = async (req, res) => {
+    const { faculty_id } = req.params;
+    try {
+        const assignments = await adminModel.getFacultyAssignments(faculty_id);
+        res.status(200).json({ assignments });
+    } catch (error) {
+        console.error('Error getting faculty assignments:', error);
+        res.status(500).json({ message: 'Internal server error getting faculty assignments.' });
+    }
+};
+
+// --- STUDENT ENROLLMENT MANAGEMENT ---
+const enrollStudentInSubject = async (req, res) => {
+    const { student_id, subject_id } = req.body;
+    if (!student_id || !subject_id) {
+        return res.status(400).json({ message: 'Student ID and Subject ID are required.' });
+    }
+    try {
+        await adminModel.enrollStudentInSubject(student_id, subject_id);
+        res.status(200).json({ message: 'Student enrolled in subject successfully.' });
+    } catch (error) {
+        console.error('Error enrolling student in subject:', error);
+        res.status(500).json({ message: 'Internal server error enrolling student in subject.' });
+    }
+};
+
+const removeStudentFromSubject = async (req, res) => {
+    const { student_id, subject_id } = req.body;
+    if (!student_id || !subject_id) {
+        return res.status(400).json({ message: 'Student ID and Subject ID are required.' });
+    }
+    try {
+        await adminModel.removeStudentFromSubject(student_id, subject_id);
+        res.status(200).json({ message: 'Student removed from subject successfully.' });
+    } catch (error) {
+        console.error('Error removing student from subject:', error);
+        res.status(500).json({ message: 'Internal server error removing student from subject.' });
+    }
+};
+
+const getStudentEnrollments = async (req, res) => {
+    const { student_id } = req.params;
+    try {
+        const enrollments = await adminModel.getStudentEnrollments(student_id);
+        res.status(200).json({ enrollments });
+    } catch (error) {
+        console.error('Error getting student enrollments:', error);
+        res.status(500).json({ message: 'Internal server error getting student enrollments.' });
+    }
+};
+
+const getSubjectEnrollments = async (req, res) => {
+    const { subject_id } = req.params;
+    try {
+        const enrollments = await adminModel.getSubjectEnrollments(subject_id);
+        res.status(200).json({ enrollments });
+    } catch (error) {
+        console.error('Error getting subject enrollments:', error);
+        res.status(500).json({ message: 'Internal server error getting subject enrollments.' });
+    }
+};
+
 module.exports = {
     registerAdmin,
     loginAdmin,
@@ -455,5 +555,12 @@ module.exports = {
     printAttendanceSheet,
     getDashboardStats,
     getAttendanceStats,
-    getDefaultersList
+    getDefaultersList,
+    assignSubjectToFaculty,
+    removeSubjectFromFaculty,
+    getFacultyAssignments,
+    enrollStudentInSubject,
+    removeStudentFromSubject,
+    getStudentEnrollments,
+    getSubjectEnrollments
 };

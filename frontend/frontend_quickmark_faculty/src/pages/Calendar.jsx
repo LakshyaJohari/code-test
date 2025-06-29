@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-
-// --- MOCK DATA ---
-const mockAttendanceData = {
-    '2024-09-06': 'present',
-    '2024-09-12': 'absent',
-    '2024-10-05': 'present',
-    '2024-10-11': 'absent',
-};
+import { getStudentCalendarAttendance } from '../api/attendance';
 
 // --- HELPER FUNCTIONS ---
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -29,7 +22,6 @@ const MonthYearPicker = ({ currentDate, onDateSelect, onClose }) => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [pickerRef, onClose]);
-
 
     const selectMonth = (monthIndex) => {
         onDateSelect(new Date(year, monthIndex, 1));
@@ -58,15 +50,44 @@ const MonthYearPicker = ({ currentDate, onDateSelect, onClose }) => {
     );
 };
 
-
 // --- MAIN CALENDAR COMPONENT ---
-
 const Calendar = ({ subject, student, onBack }) => {
     // --- STATE MANAGEMENT ---
-    const [currentDate, setCurrentDate] = useState(new Date(2024, 8, 1));
-    const [attendanceData, setAttendanceData] = useState(mockAttendanceData);
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [attendanceData, setAttendanceData] = useState({});
     const [selectedDate, setSelectedDate] = useState(null);
     const [showPicker, setShowPicker] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    // --- FETCH ATTENDANCE DATA ---
+    const fetchAttendanceData = async (month, year) => {
+        if (!subject?.subject_id || !student?.student_id) return;
+        
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const data = await getStudentCalendarAttendance(
+                subject.subject_id, 
+                student.student_id, 
+                month + 1, // API expects 1-based month
+                year
+            );
+            setAttendanceData(data);
+        } catch (err) {
+            console.error('Error fetching attendance data:', err);
+            setError(err.response?.data?.message || 'Failed to fetch attendance data');
+            setAttendanceData({});
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch data when component mounts or date changes
+    useEffect(() => {
+        fetchAttendanceData(currentDate.getMonth(), currentDate.getFullYear());
+    }, [currentDate, subject?.subject_id, student?.student_id]);
 
     // --- EVENT HANDLERS ---
     const goToPreviousMonth = () => {
@@ -95,7 +116,7 @@ const Calendar = ({ subject, student, onBack }) => {
 
         const updatedData = { ...attendanceData, [dateStr]: newStatus };
         setAttendanceData(updatedData);
-        alert(`Marked student ${student.rollNo} as ${newStatus} on ${dateStr}`);
+        alert(`Marked student ${student.roll_number || student.rollNo} as ${newStatus} on ${dateStr}`);
     };
 
     // --- RENDER LOGIC ---
@@ -114,9 +135,11 @@ const Calendar = ({ subject, student, onBack }) => {
 
             let circleStyle = '';
             if (status === 'present') {
-                circleStyle = 'bg-success text-white';
+                circleStyle = 'bg-green-500 text-white';
             } else if (status === 'absent') {
-                circleStyle = 'bg-danger text-white';
+                circleStyle = 'bg-red-500 text-white';
+            } else if (status === 'late') {
+                circleStyle = 'bg-yellow-500 text-white';
             } else {
                 circleStyle = 'hover:bg-gray-200';
             }
@@ -172,9 +195,18 @@ const Calendar = ({ subject, student, onBack }) => {
                         <ArrowLeft size={16} className="mr-2" />
                         Back to Subject Detail
                     </button>
-                    <h2 className="text-3xl font-bold text-text-primary">{subject.name} - {student.rollNo}</h2>
+                    <h2 className="text-3xl font-bold text-text-primary">
+                        {subject.subject_name || subject.name} - {student.roll_number || student.rollNo}
+                    </h2>
+                    {student.name && <p className="text-text-secondary mt-1">{student.name}</p>}
                 </div>
             </div>
+
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {error}
+                </div>
+            )}
 
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="relative flex justify-between items-center mb-6 px-4">
@@ -189,16 +221,39 @@ const Calendar = ({ subject, student, onBack }) => {
                      {showPicker && <MonthYearPicker currentDate={currentDate} onDateSelect={setCurrentDate} onClose={() => setShowPicker(false)} />}
                 </div>
                 
-                <div className="grid grid-cols-7 gap-y-2 text-center text-sm">
-                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => <div key={day} className="font-medium text-text-secondary">{day}</div>)}
-                    {renderCalendarGrid()}
-                </div>
+                {loading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-7 gap-y-2 text-center text-sm">
+                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => <div key={`header-${index}`} className="font-medium text-text-secondary">{day}</div>)}
+                            {renderCalendarGrid()}
+                        </div>
+                        
+                        <div className="mt-6 flex justify-center gap-6 text-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span>Present</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                <span>Late</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                <span>Absent</span>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             <div className="mt-8 text-center">
                  <button
                     onClick={handleManualMarking}
-                    disabled={buttonState.disabled}
+                    disabled={buttonState.disabled || loading}
                     className="w-full max-w-xs bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark transition-colors duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                     {buttonState.text}

@@ -24,7 +24,8 @@ import {
   subjectAPI, 
   dashboardAPI,
   settingsAPI,
-  reportsAPI
+  reportsAPI,
+  facultyAssignmentAPI
 } from "./utils/api";
 
 // Notification component
@@ -311,6 +312,8 @@ export default function App() {
       } else {
         await studentAPI.create(updatedData);
         showNotification('Student created successfully', 'success');
+        // Redirect to students list after creating a new student
+        navigateTo('Students');
       }
       await fetchStudents();
       await fetchDefaulters();
@@ -423,6 +426,59 @@ export default function App() {
     }
   };
 
+  // Faculty Assignment Handlers
+  const handleAssignSubjectToFaculty = async (facultyId, subjectId) => {
+    try {
+      await facultyAssignmentAPI.assignSubjectToFaculty(facultyId, subjectId);
+      showNotification('Subject assigned to faculty successfully', 'success');
+      
+      // Refresh both faculty and subjects data to show updated assignments
+      await Promise.all([
+        fetchFaculty(pagination.faculty.currentPage, pagination.faculty.limit),
+        fetchSubjects(pagination.subjects.currentPage, pagination.subjects.limit)
+      ]);
+    } catch (error) {
+      console.error('Error assigning subject to faculty:', error);
+      showNotification(error.message || 'Failed to assign subject to faculty', 'error');
+      throw error;
+    }
+  };
+
+  const handleRemoveSubjectFromFaculty = async (facultyId, subjectId) => {
+    try {
+      console.log('🔍 Attempting to remove subject from faculty:', { facultyId, subjectId });
+      console.log('🔑 Current token:', localStorage.getItem('adminToken'));
+      
+      await facultyAssignmentAPI.removeSubjectFromFaculty(facultyId, subjectId);
+      showNotification('Subject removed from faculty successfully', 'success');
+      
+      // Refresh faculty data to show updated assignments
+      await fetchFaculty(pagination.faculty.currentPage, pagination.faculty.limit);
+    } catch (error) {
+      console.error('❌ Error removing subject from faculty:', error);
+      
+      // Check if it's an authentication error
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        showNotification('Please log in again. Session may have expired.', 'error');
+        handleLogout();
+        return;
+      }
+      
+      showNotification(error.message || 'Failed to remove subject from faculty', 'error');
+      throw error;
+    }
+  };
+
+  const handleGetFacultyAssignments = async (facultyId) => {
+    try {
+      return await facultyAssignmentAPI.getFacultyAssignments(facultyId);
+    } catch (error) {
+      console.error('Error getting faculty assignments:', error);
+      showNotification(error.message || 'Failed to get faculty assignments', 'error');
+      throw error;
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -472,15 +528,21 @@ export default function App() {
         />;
       
       case "Faculty":
-        return <FacultyList 
-          faculty={faculty} 
-          onAddFaculty={handleAddFaculty} 
-          onUpdateFaculty={handleUpdateFaculty} 
-          onDeleteFaculty={handleDeleteFaculty}
-          pagination={pagination.faculty}
-          onPageChange={(page) => handlePageChange('faculty', page)}
-          allDepartments={departments}
-        />;
+        return (
+          <FacultyList
+            faculty={faculty}
+            onAddFaculty={handleAddFaculty}
+            onUpdateFaculty={handleUpdateFaculty}
+            onDeleteFaculty={handleDeleteFaculty}
+            pagination={pagination.faculty}
+            onPageChange={(page) => handlePageChange('faculty', page)}
+            allDepartments={departments}
+            allSubjects={subjects}
+            onAssignSubjectToFaculty={handleAssignSubjectToFaculty}
+            onRemoveSubjectFromFaculty={handleRemoveSubjectFromFaculty}
+            onGetFacultyAssignments={handleGetFacultyAssignments}
+          />
+        );
       
       case "Departments":
         return <DepartmentPage 

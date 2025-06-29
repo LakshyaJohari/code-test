@@ -1,5 +1,5 @@
 const express = require('express');
-const { loginFaculty, getMyProfile, updateMyProfile, changeMyPassword } = require('../controllers/facultyController');
+const { loginFaculty, getMyProfile, updateMyProfile, changeMyPassword, getSubjectStudents } = require('../controllers/facultyController');
 const { getFacultySubjects } = require('../models/userModel'); // Fixed: import from userModel
 const { authMiddleware } = require('../middleware/authMiddleware'); // Fixed: use destructuring
 const { requireFaculty } = require('../middleware/accessControlMiddleware'); // Import role middleware
@@ -24,5 +24,8 @@ router.get('/me/subjects', authMiddleware, requireFaculty, async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch faculty subjects.' });
     }
 });
+
+// Get enrolled students for a subject (only if faculty is assigned to that subject)
+router.get('/subjects/:subject_id/students', authMiddleware, requireFaculty, getSubjectStudents);
 
 module.exports = router;

@@ -3,6 +3,8 @@
 const userModel = require('../models/userModel'); // This is your 'faculty' model
 const { hashPassword, comparePassword } = require('../utils/passwordHasher');
 const { generateToken } = require('../config/jwt'); // Use the proper JWT import
+const subjectModel = require('../models/subjectModel');
+const adminModel = require('../models/adminModel');
 
 // Gets the profile of the authenticated faculty.
 const getMyProfile = async (req, res) => {
@@ -116,10 +118,32 @@ const loginFaculty = async (req, res) => {
     }
 };
 
+// Get enrolled students for a subject (only if faculty is assigned to that subject)
+const getSubjectStudents = async (req, res) => {
+    const { subject_id } = req.params;
+    const facultyId = req.user.id;
+    
+    try {
+        // First check if faculty is assigned to this subject
+        const isAssigned = await subjectModel.isFacultyAssignedToSubject(facultyId, subject_id);
+        if (!isAssigned) {
+            return res.status(403).json({ message: 'You are not assigned to this subject.' });
+        }
+        
+        // Get enrolled students for this subject
+        const enrollments = await adminModel.getSubjectEnrollments(subject_id);
+        res.status(200).json({ students: enrollments });
+    } catch (error) {
+        console.error('Error getting subject students:', error);
+        res.status(500).json({ message: 'Internal server error getting subject students.' });
+    }
+};
+
 // Export all functions
 module.exports = {
     getMyProfile,
     updateMyProfile,
     changeMyPassword,
-    loginFaculty // Make sure this is exported!
+    loginFaculty, // Make sure this is exported!
+    getSubjectStudents
 };

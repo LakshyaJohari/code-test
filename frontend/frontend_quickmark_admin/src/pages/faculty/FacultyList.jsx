@@ -1,8 +1,9 @@
 // src/pages/faculty/FacultyList.jsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 // --- 1. IMPORT: Add Printer and Upload icons ---
-import { Filter, Printer, Upload } from 'lucide-react';
+import { Filter, Printer, Upload, BookOpen } from 'lucide-react';
 import AddEditFacultyModal from './AddEditFacultyModal.jsx';
+import SubjectAssignmentModal from './SubjectAssignmentModal.jsx';
 import Pagination from '../../components/common/Pagination';
 
 export default function FacultyList({ 
@@ -13,11 +14,18 @@ export default function FacultyList({
   pagination = { page: 1, totalPages: 1, totalItems: 0 },
   onPageChange,
   allDepartments = [],
+  allSubjects = [],
+  onAssignSubjectToFaculty,
+  onRemoveSubjectFromFaculty,
+  onGetFacultyAssignments,
 }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSubjectAssignmentModalOpen, setIsSubjectAssignmentModalOpen] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [editingFaculty, setEditingFaculty] = useState(null);
+    const [selectedFacultyForAssignment, setSelectedFacultyForAssignment] = useState(null);
+    const [facultyAssignments, setFacultyAssignments] = useState([]);
     
     const [filterDepartment, setFilterDepartment] = useState('');
     const [filterDesignation, setFilterDesignation] = useState('');
@@ -117,9 +125,61 @@ export default function FacultyList({
         setEditingFaculty(null);
     };
 
+    const handleAssignSubjectsClick = async (facultyMember) => {
+        setSelectedFacultyForAssignment(facultyMember);
+        try {
+            // Fetch current assignments for this faculty
+            const assignments = await onGetFacultyAssignments(facultyMember.faculty_id);
+            setFacultyAssignments(assignments.assignments || []);
+            setIsSubjectAssignmentModalOpen(true);
+        } catch (error) {
+            console.error('Error fetching faculty assignments:', error);
+            setFacultyAssignments([]);
+            setIsSubjectAssignmentModalOpen(true);
+        }
+    };
+
+    const handleCloseSubjectAssignmentModal = () => {
+        setIsSubjectAssignmentModalOpen(false);
+        setSelectedFacultyForAssignment(null);
+        setFacultyAssignments([]);
+    };
+
+    const handleAssignSubject = async (facultyId, subjectId) => {
+        try {
+            await onAssignSubjectToFaculty(facultyId, subjectId);
+            // Refresh assignments
+            const assignments = await onGetFacultyAssignments(facultyId);
+            setFacultyAssignments(assignments.assignments || []);
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const handleRemoveSubject = async (facultyId, subjectId) => {
+        try {
+            await onRemoveSubjectFromFaculty(facultyId, subjectId);
+            // Refresh assignments
+            const assignments = await onGetFacultyAssignments(facultyId);
+            setFacultyAssignments(assignments.assignments || []);
+        } catch (error) {
+            throw error;
+        }
+    };
+
     return (
         <>
             {isModalOpen && <AddEditFacultyModal facultyMember={editingFaculty} onClose={handleCloseModal} onSave={handleSave} allDepartments={allDepartments} />}
+            {isSubjectAssignmentModalOpen && (
+                <SubjectAssignmentModal
+                    faculty={selectedFacultyForAssignment}
+                    allSubjects={allSubjects}
+                    currentAssignments={facultyAssignments}
+                    onClose={handleCloseSubjectAssignmentModal}
+                    onAssignSubject={handleAssignSubject}
+                    onRemoveSubject={handleRemoveSubject}
+                />
+            )}
 
             <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6">
@@ -173,6 +233,10 @@ export default function FacultyList({
                                         <td className="py-3 px-4">{f.department_name}</td>
                                         <td className="py-3 px-4">{f.designation || 'Faculty'}</td>
                                         <td className="py-3 px-4 text-right no-print">
+                                            <button onClick={() => handleAssignSubjectsClick(f)} className="text-green-500 hover:underline font-semibold text-sm mr-4 flex items-center gap-1">
+                                                <BookOpen size={14} />
+                                                Assign Subjects
+                                            </button>
                                             <button onClick={() => handleEditClick(f)} className="text-blue-500 hover:underline font-semibold text-sm mr-4">Edit</button>
                                             <button onClick={() => onDeleteFaculty(f.faculty_id)} className="text-red-500 hover:underline font-semibold text-sm">Delete</button>
                                         </td>

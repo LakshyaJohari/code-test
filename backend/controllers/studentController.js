@@ -59,7 +59,7 @@ const getMyStudentProfile = async (req, res) => {
     }
 };
 
-// Student Marking Attendance (secure version)
+// Student Marking Attendance (secure version with enhanced QR validation)
 const markAttendanceByLoggedInStudent = async (req, res) => {
     const studentId = req.student.id;
     const { qr_code_data } = req.body;
@@ -69,14 +69,30 @@ const markAttendanceByLoggedInStudent = async (req, res) => {
     }
 
     try {
+        // Enhanced QR validation with expiration check
         const session = await attendanceModel.getActiveSessionByQRCode(qr_code_data);
         if (!session) {
+            // Check if QR exists but is expired
+            const isExpired = await attendanceModel.isQRCodeExpired(qr_code_data);
+            if (isExpired) {
+                return res.status(400).json({ message: 'QR code has expired. Please scan the current QR code.' });
+            }
             return res.status(404).json({ message: 'Active attendance session not found with this QR code.' });
         }
 
         const isStudentEnrolled = await studentModel.isStudentEnrolledInSubject(studentId, session.subject_id);
         if (!isStudentEnrolled) {
             return res.status(400).json({ message: 'You are not enrolled in this subject for this session.' });
+        }
+
+        // Check if student already marked attendance for this session
+        const existingRecord = await attendanceModel.getSessionAttendanceRecords(session.session_id);
+        const alreadyMarked = existingRecord.find(record => record.student_id === studentId);
+        if (alreadyMarked) {
+            return res.status(400).json({ 
+                message: 'Attendance already marked for this session.',
+                current_status: alreadyMarked.status
+            });
         }
 
         const attendedAt = new Date().toISOString();
@@ -88,7 +104,8 @@ const markAttendanceByLoggedInStudent = async (req, res) => {
                 session_id: record.session_id,
                 student_id: record.student_id,
                 status: record.status,
-                attended_at: record.attended_at
+                attended_at: record.attended_at,
+                qr_sequence: session.qr_sequence_number
             }
         });
     } catch (error) {

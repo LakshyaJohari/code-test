@@ -12,10 +12,14 @@ const PORT = process.env.PORT || 3700;
 const corsOptions = {
   origin: [
     'http://localhost:3000',    // React default
-    'http://localhost:5173',    // Vite default
+    'http://localhost:5173',    // Vite default (admin)
+    'http://localhost:5174',    // Vite default (faculty)
+    'http://localhost:5175',    // Vite default (faculty)
     'http://localhost:4173',    // Vite preview
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
     'http://127.0.0.1:4173',
     // Add production URLs when deployed
   ],

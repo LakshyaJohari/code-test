@@ -2,6 +2,8 @@ const studentModel = require('../models/studentModel');
 const attendanceModel = require('../models/attendanceModel');
 const { comparePassword } = require('../utils/passwordHasher');
 const { generateToken } = require('../config/jwt');
+const redisClient = require('../config/redis');
+const jwt = require('jsonwebtoken');
 
 // Student Login
 const loginStudent = async (req, res) => {
@@ -62,54 +64,78 @@ const getMyStudentProfile = async (req, res) => {
 // Student Marking Attendance (secure version with enhanced QR validation)
 const markAttendanceByLoggedInStudent = async (req, res) => {
     const studentId = req.student.id;
-    const { qr_code_data } = req.body;
+    const { verify_session_token, face_verify } = req.body;
 
-    if (!qr_code_data) {
-        return res.status(400).json({ message: 'QR code data is required.' });
+    if (!verify_session_token || typeof face_verify !== 'boolean') {
+        console.log(`[markAttendance] Missing token or face_verify | studentId: ${studentId} | time: ${new Date().toISOString()}`);
+        return res.status(400).json({ message: 'verify_session_token and face_verify are required.' });
     }
 
     try {
-        // Enhanced QR validation with expiration check
-        const session = await attendanceModel.getActiveSessionByQRCode(qr_code_data);
-        if (!session) {
-            // Check if QR exists but is expired
-            const isExpired = await attendanceModel.isQRCodeExpired(qr_code_data);
-            if (isExpired) {
-                return res.status(400).json({ message: 'QR code has expired. Please scan the current QR code.' });
-            }
-            return res.status(404).json({ message: 'Active attendance session not found with this QR code.' });
+        // 1. Verify the JWT token
+        let payload;
+        try {
+            payload = jwt.verify(verify_session_token, process.env.JWT_SECRET);
+        } catch (err) {
+            console.log(`[markAttendance] Invalid/expired token | studentId: ${studentId} | time: ${new Date().toISOString()}`);
+            return res.status(401).json({ message: 'Invalid or expired session token.' });
         }
-
-        const isStudentEnrolled = await studentModel.isStudentEnrolledInSubject(studentId, session.subject_id);
-        if (!isStudentEnrolled) {
-            return res.status(400).json({ message: 'You are not enrolled in this subject for this session.' });
+        const { jti, studentId: tokenStudentId, sessionId } = payload;
+        if (!jti || !tokenStudentId || !sessionId) {
+            console.log(`[markAttendance] Invalid token payload | studentId: ${studentId} | time: ${new Date().toISOString()}`);
+            return res.status(400).json({ message: 'Invalid session token payload.' });
         }
-
+        // 2. Ensure the token is for this student
+        if (tokenStudentId !== studentId) {
+            console.log(`[markAttendance] Token does not match student | studentId: ${studentId} | tokenStudentId: ${tokenStudentId} | time: ${new Date().toISOString()}`);
+            return res.status(403).json({ message: 'Session token does not match student.' });
+        }
+        // 3. Check Redis for single-use
+        const redisKey = `attendance_session_token:${jti}`;
+        const tokenStatus = await redisClient.get(redisKey);
+        if (!tokenStatus) {
+            console.log(`[markAttendance] Token expired or already used | studentId: ${studentId} | jti: ${jti} | time: ${new Date().toISOString()}`);
+            return res.status(401).json({ message: 'Session token expired or already used.' });
+        }
+        if (tokenStatus !== 'unused') {
+            console.log(`[markAttendance] Token already used | studentId: ${studentId} | jti: ${jti} | time: ${new Date().toISOString()}`);
+            return res.status(401).json({ message: 'Session token already used.' });
+        }
+        // 4. Check face verification
+        if (!face_verify) {
+            console.log(`[markAttendance] Face verification failed | studentId: ${studentId} | sessionId: ${sessionId} | jti: ${jti} | time: ${new Date().toISOString()}`);
+            return res.status(400).json({ message: 'Face verification failed.' });
+        }
+        // 5. Mark attendance
         // Check if student already marked attendance for this session
-        const existingRecord = await attendanceModel.getSessionAttendanceRecords(session.session_id);
+        const existingRecord = await attendanceModel.getSessionAttendanceRecords(sessionId);
         const alreadyMarked = existingRecord.find(record => record.student_id === studentId);
         if (alreadyMarked) {
+            // Invalidate the token anyway
+            await redisClient.set(redisKey, 'used');
+            console.log(`[markAttendance] Already marked | studentId: ${studentId} | sessionId: ${sessionId} | jti: ${jti} | time: ${new Date().toISOString()}`);
             return res.status(400).json({ 
                 message: 'Attendance already marked for this session.',
                 current_status: alreadyMarked.status
             });
         }
-
         const attendedAt = new Date().toISOString();
-        const record = await attendanceModel.markAttendance(session.session_id, studentId, 'present', attendedAt);
-
+        const record = await attendanceModel.markAttendance(sessionId, studentId, 'present', attendedAt);
+        // 6. Invalidate the token in Redis
+        await redisClient.set(redisKey, 'used');
+        // 7. Log attendance marking (simple analytics)
+        console.log(`[markAttendance] Attendance marked | studentId: ${studentId} | sessionId: ${sessionId} | jti: ${jti} | time: ${new Date().toISOString()}`);
         res.status(200).json({
             message: 'Attendance marked successfully!',
             record: {
                 session_id: record.session_id,
                 student_id: record.student_id,
                 status: record.status,
-                attended_at: record.attended_at,
-                qr_sequence: session.qr_sequence_number
+                attended_at: record.attended_at
             }
         });
     } catch (error) {
-        console.error('Error marking attendance for logged-in student:', error.message);
+        console.error(`[markAttendance] Error | studentId: ${studentId} | error: ${error.message} | time: ${new Date().toISOString()}`);
         res.status(500).json({ message: 'Internal server error marking attendance.' });
     }
 };

@@ -10,7 +10,8 @@ const {
     getStudentCalendarAttendance,
     getAdminStudentCalendarAttendance,
     overrideAttendance,
-    submitAttendance
+    submitAttendance,
+    verifySession
 } = require('../controllers/attendanceController');
 
 const { authMiddleware, requireAdminOrFaculty } = require('../middleware/authMiddleware');
@@ -38,5 +39,8 @@ router.get('/admin/subjects/:subject_id/students/:student_id/calendar', authMidd
 
 // Get attendance data for student calendar view (Faculty only - requires assignment)
 router.get('/subjects/:subject_id/students/:student_id/calendar', authMiddleware, requireAdminOrFaculty, getStudentCalendarAttendance);
+
+// Verify session (QR scan) - issues a short-lived token after QR validation
+router.post('/verify-session', authMiddleware, verifySession);
 
 module.exports = router;

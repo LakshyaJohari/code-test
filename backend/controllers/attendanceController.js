@@ -1,6 +1,9 @@
 const attendanceModel = require('../models/attendanceModel');
 const subjectModel = require('../models/subjectModel');
 const studentModel = require('../models/studentModel');
+const redisClient = require('../config/redis');
+const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
 
 // Starts a new attendance session for a subject.
 const startAttendanceSession = async (req, res) => {
@@ -399,6 +402,47 @@ const submitAttendance = async (req, res) => {
     }
 };
 
+// Verify session (QR scan) - issues a short-lived token after QR validation
+const verifySession = async (req, res) => {
+    const { qr_code_data } = req.body;
+    const studentId = req.user.id;
+    if (!qr_code_data) {
+        console.log(`[verifySession] Missing QR code data | studentId: ${studentId} | time: ${new Date().toISOString()}`);
+        return res.status(400).json({ message: 'QR code data is required.' });
+    }
+    try {
+        // 1. Find the active session for this QR code
+        const session = await attendanceModel.getActiveSessionByQRCode(qr_code_data);
+        if (!session) {
+            console.log(`[verifySession] Invalid/expired QR | studentId: ${studentId} | qr: ${qr_code_data} | time: ${new Date().toISOString()}`);
+            return res.status(400).json({ message: 'Invalid or expired QR code.' });
+        }
+        // 2. Check if student is enrolled in the subject
+        const isEnrolled = await attendanceModel.isStudentEnrolledInSubject(studentId, session.subject_id);
+        if (!isEnrolled) {
+            console.log(`[verifySession] Not enrolled | studentId: ${studentId} | subjectId: ${session.subject_id} | time: ${new Date().toISOString()}`);
+            return res.status(403).json({ message: 'You are not enrolled in this subject.' });
+        }
+        // 3. Generate a short-lived JWT session token
+        const jti = uuidv4();
+        const payload = {
+            studentId,
+            sessionId: session.session_id,
+            jti
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10s', jwtid: jti });
+        // 4. Store the token's jti in Redis as 'unused' with a 10s TTL
+        await redisClient.setEx(`attendance_session_token:${jti}`, 10, 'unused');
+        // 5. Log token issuance (simple analytics)
+        console.log(`[verifySession] Token issued | studentId: ${studentId} | sessionId: ${session.session_id} | jti: ${jti} | time: ${new Date().toISOString()}`);
+        // 6. Return the token
+        return res.status(200).json({ verify_session_token: token, expires_in: 10 });
+    } catch (error) {
+        console.error(`[verifySession] Error | studentId: ${studentId} | error: ${error.message} | time: ${new Date().toISOString()}`);
+        return res.status(500).json({ message: 'Internal server error during session verification.' });
+    }
+};
+
 module.exports = {
     startAttendanceSession,
     generateNextQRCode,
@@ -408,5 +452,6 @@ module.exports = {
     getAdminStudentCalendarAttendance,
     getStudentOwnCalendarAttendance,
     overrideAttendance,
-    submitAttendance
+    submitAttendance,
+    verifySession
 };

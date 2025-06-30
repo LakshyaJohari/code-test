@@ -1,8 +1,12 @@
+// backend/controllers/adminController.js
+
 const adminModel = require('../models/adminModel');
 const { comparePassword, hashPassword } = require('../utils/passwordHasher');
 const { generateToken } = require('../config/jwt');
+const archiver = require('archiver');
+const PDFDocument = require('pdfkit');
 
-// ----------- ADMIN AUTH -----------
+// --- ADMIN AUTH ---
 const registerAdmin = async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -61,11 +65,13 @@ const loginAdmin = async (req, res) => {
     }
 };
 
-// ----------- DEPARTMENTS -----------
+// --- DEPARTMENTS ---
 const getDepartments = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const departments = await adminModel.getAllDepartments();
-        res.status(200).json(departments);
+        const { departments, totalItems, totalPages, currentPage } = await adminModel.getAllDepartments(page, limit);
+        res.status(200).json({ departments, totalItems, totalPages, currentPage });
     } catch (error) {
         console.error('Error getting departments:', error);
         res.status(500).json({ message: 'Internal server error getting departments.' });
@@ -118,11 +124,13 @@ const deleteDepartment = async (req, res) => {
     }
 };
 
-// ----------- FACULTY -----------
+// --- FACULTY ---
 const getFaculties = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const faculties = await adminModel.getAllFaculties();
-        res.status(200).json(faculties);
+        const { faculty, totalItems, totalPages, currentPage } = await adminModel.getAllFaculties(page, limit);
+        res.status(200).json({ faculty, totalItems, totalPages, currentPage });
     } catch (error) {
         console.error('Error getting faculties:', error);
         res.status(500).json({ message: 'Internal server error getting faculties.' });
@@ -130,12 +138,12 @@ const getFaculties = async (req, res) => {
 };
 
 const createFaculty = async (req, res) => {
-    const { name, email, password, department_id } = req.body;
+    const { name, email, password, department_id, subject_ids } = req.body;
     if (!name || !email || !password || !department_id) {
         return res.status(400).json({ message: 'All faculty fields are required.' });
     }
     try {
-        const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id);
+        const newFaculty = await adminModel.createFacultyByAdmin(name, email, password, department_id, subject_ids || []);
         res.status(201).json({ message: 'Faculty created successfully.', faculty: newFaculty });
     } catch (error) {
         console.error('Error creating faculty:', error);
@@ -145,12 +153,12 @@ const createFaculty = async (req, res) => {
 
 const updateFaculty = async (req, res) => {
     const { faculty_id } = req.params;
-    const { name, email, department_id } = req.body;
+    const { name, email, department_id, designation } = req.body;
     if (!name || !email || !department_id) {
-        return res.status(400).json({ message: 'All faculty fields are required for update.' });
+        return res.status(400).json({ message: 'Name, email, and department are required for update.' });
     }
     try {
-        const updatedFaculty = await adminModel.updateFaculty(faculty_id, name, email, department_id);
+        const updatedFaculty = await adminModel.updateFaculty(faculty_id, name, email, department_id, designation || 'Faculty');
         if (!updatedFaculty) {
             return res.status(404).json({ message: 'Faculty not found.' });
         }
@@ -175,11 +183,13 @@ const deleteFaculty = async (req, res) => {
     }
 };
 
-// ----------- STUDENTS -----------
+// --- STUDENTS ---
 const getStudents = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     try {
-        const students = await adminModel.getAllStudents();
-        res.status(200).json(students);
+        const { students, totalItems, totalPages, currentPage } = await adminModel.getAllStudents(page, limit);
+        res.status(200).json({ students, totalItems, totalPages, currentPage });
     } catch (error) {
         console.error('Error getting students:', error);
         res.status(500).json({ message: 'Internal server error getting students.' });
@@ -188,7 +198,17 @@ const getStudents = async (req, res) => {
 
 const createStudent = async (req, res) => {
     const { roll_number, name, email, department_id, current_year, section } = req.body;
-    if (!roll_number || !name || !department_id || !current_year || !section) {
+    console.log('Creating student with data:', { roll_number, name, email, department_id, current_year, section });
+    console.log('Data types:', { 
+        roll_number: typeof roll_number, 
+        name: typeof name, 
+        email: typeof email, 
+        department_id: typeof department_id, 
+        current_year: typeof current_year, 
+        section: typeof section 
+    });
+    if (!roll_number || !name || !email || !department_id || !current_year || !section) {
+        console.log('Missing required fields:', { roll_number: !!roll_number, name: !!name, email: !!email, department_id: !!department_id, current_year: !!current_year, section: !!section });
         return res.status(400).json({ message: 'All required student fields are missing.' });
     }
     try {
@@ -203,7 +223,7 @@ const createStudent = async (req, res) => {
 const updateStudent = async (req, res) => {
     const { student_id } = req.params;
     const { roll_number, name, email, department_id, current_year, section } = req.body;
-    if (!roll_number || !name || !department_id || !current_year || !section) {
+    if (!roll_number || !name || !email || !department_id || !current_year || !section) {
         return res.status(400).json({ message: 'All required student fields are missing for update.' });
     }
     try {
@@ -232,11 +252,18 @@ const deleteStudent = async (req, res) => {
     }
 };
 
-// ----------- SUBJECTS -----------
+// --- SUBJECTS ---
 const getSubjects = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const searchTerm = req.query.searchTerm || '';
+    const filterYear = req.query.filterYear || '';
+    const filterSection = req.query.filterSection || '';
+    const filterSemester = req.query.filterSemester || '';
+    const filterDepartmentId = req.query.filterDepartmentId || '';
     try {
-        const subjects = await adminModel.getAllSubjects();
-        res.status(200).json(subjects);
+        const { subjects, totalItems, totalPages, currentPage } = await adminModel.getAllSubjects(page, limit, searchTerm, filterYear, filterSection, filterSemester, filterDepartmentId);
+        res.status(200).json({ subjects, totalItems, totalPages, currentPage });
     } catch (error) {
         console.error('Error getting subjects:', error);
         res.status(500).json({ message: 'Internal server error getting subjects.' });
@@ -244,12 +271,12 @@ const getSubjects = async (req, res) => {
 };
 
 const createSubject = async (req, res) => {
-    const { subject_name, department_id, year, section, batch_name } = req.body;
-    if (!subject_name || !department_id || !year || !section) {
-        return res.status(400).json({ message: 'Subject name, department, year, and section are required.' });
+    const { subject_name, department_id, year, section, semester } = req.body;
+    if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
+        return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required.' });
     }
     try {
-        const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, batch_name);
+        const newSubject = await adminModel.createSubject(subject_name, department_id, year, section, semester);
         res.status(201).json({ message: 'Subject created successfully.', subject: newSubject });
     } catch (error) {
         console.error('Error creating subject:', error);
@@ -259,12 +286,12 @@ const createSubject = async (req, res) => {
 
 const updateSubject = async (req, res) => {
     const { subject_id } = req.params;
-    const { subject_name, department_id, year, section, batch_name } = req.body;
-    if (!subject_name || !department_id || !year || !section) {
-        return res.status(400).json({ message: 'Subject name, department, year, and section are required for update.' });
+    const { subject_name, department_id, year, section, semester } = req.body;
+    if (!subject_name || !department_id || !year || !section || typeof semester === 'undefined') {
+        return res.status(400).json({ message: 'Subject name, department, year, section, and semester are required for update.' });
     }
     try {
-        const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, batch_name);
+        const updatedSubject = await adminModel.updateSubject(subject_id, subject_name, department_id, year, section, semester);
         if (!updatedSubject) {
             return res.status(404).json({ message: 'Subject not found.' });
         }
@@ -289,6 +316,220 @@ const deleteSubject = async (req, res) => {
     }
 };
 
+// --- SETTINGS ---
+const getAttendanceThreshold = async (req, res) => {
+    try {
+        const threshold = await adminModel.getAppSetting('attendance_threshold');
+        res.status(200).json({ threshold: threshold ? parseInt(threshold) : 75 });
+    } catch (error) {
+        console.error('Error getting settings:', error);
+        res.status(500).json({ message: 'Internal server error getting settings.' });
+    }
+};
+
+const updateAttendanceThreshold = async (req, res) => {
+    const { threshold } = req.body;
+    if (typeof threshold !== 'number' || threshold < 0 || threshold > 100) {
+        return res.status(400).json({ message: 'Threshold must be a number between 0 and 100.' });
+    }
+    try {
+        await adminModel.updateAppSetting('attendance_threshold', String(threshold), 'Minimum attendance percentage for defaulters');
+        res.status(200).json({ message: 'Attendance threshold updated successfully.' });
+    } catch (error) {
+        console.error('Error updating threshold:', error);
+        res.status(500).json({ message: 'Internal server error updating threshold.' });
+    }
+};
+
+// --- REPORTS ---
+const backupData = async (req, res) => {
+    try {
+        const tables = ['departments', 'faculties', 'students', 'subjects', 'enrollments', 'attendance_sessions', 'attendance_records', 'app_settings', 'admins'];
+        const archive = archiver('zip');
+        res.attachment('backup.zip');
+        archive.pipe(res);
+
+        for (const table of tables) {
+            const result = await adminModel.getAllTableData(table);
+            archive.append(JSON.stringify(result, null, 2), { name: `${table}.json` });
+        }
+        archive.finalize();
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        res.status(500).json({ message: 'Failed to create backup.' });
+    }
+};
+
+const printAttendanceSheet = async (req, res) => {
+    try {
+        const doc = new PDFDocument();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="attendance-sheet.pdf"');
+        doc.pipe(res);
+
+        doc.fontSize(20).text('Master Attendance Sheet', { align: 'center' });
+        doc.moveDown();
+
+        const students = await adminModel.getStudentsForAttendanceSheet();
+        students.forEach((student, idx) => {
+            doc.fontSize(12).text(`${idx + 1}. ${student.roll_number} - ${student.name}`);
+        });
+
+        doc.end();
+    } catch (error) {
+        console.error('Error generating attendance sheet:', error);
+        res.status(500).json({ message: 'Internal server error generating attendance sheet.' });
+    }
+};
+
+// --- DASHBOARD ---
+const getDashboardStats = async (req, res) => {
+    try {
+        const subjectsCount = await adminModel.countEntities('subjects');
+        const studentsCount = await adminModel.countEntities('students');
+        const facultyCount = await adminModel.countEntities('faculties');
+        const departmentsCount = await adminModel.countEntities('departments');
+        const defaultersCount = await adminModel.countDefaulters();
+
+        res.status(200).json({
+            subjects: subjectsCount,
+            students: studentsCount,
+            faculties: facultyCount,
+            departments: departmentsCount,
+            defaulters: defaultersCount,
+        });
+    } catch (error) {
+        console.error('Error getting dashboard stats:', error);
+        res.status(500).json({ message: 'Internal server error getting dashboard stats.' });
+    }
+};
+
+const getAttendanceStats = async (req, res) => {
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
+    
+    try {
+        const stats = await adminModel.getAttendanceStats(startDate, endDate);
+        res.status(200).json(stats);
+    } catch (error) {
+        console.error('Error getting attendance stats:', error);
+        res.status(500).json({ message: 'Internal server error getting attendance stats.' });
+    }
+};
+
+const getDefaultersList = async (req, res) => {
+    const threshold = parseInt(req.query.threshold) || 75;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    try {
+        const { defaulters, totalItems, totalPages, currentPage } = await adminModel.getDefaultersList(threshold, page, limit);
+        res.status(200).json({ defaulters, totalItems, totalPages, currentPage });
+    } catch (error) {
+        console.error('Error getting defaulters list:', error);
+        res.status(500).json({ message: 'Internal server error getting defaulters list.' });
+    }
+};
+
+// --- FACULTY ASSIGNMENT MANAGEMENT ---
+const assignSubjectToFaculty = async (req, res) => {
+    const { faculty_id, subject_id } = req.body;
+    if (!faculty_id || !subject_id) {
+        return res.status(400).json({ message: 'Faculty ID and Subject ID are required.' });
+    }
+    try {
+        await adminModel.assignSubjectToFaculty(faculty_id, subject_id);
+        res.status(200).json({ message: 'Subject assigned to faculty successfully.' });
+    } catch (error) {
+        console.error('Error assigning subject to faculty:', error);
+        res.status(500).json({ message: 'Internal server error assigning subject to faculty.' });
+    }
+};
+
+const removeSubjectFromFaculty = async (req, res) => {
+    console.log('removeSubjectFromFaculty called with body:', req.body);
+    console.log('Request method:', req.method);
+    console.log('Request headers:', req.headers);
+    
+    const { faculty_id, subject_id } = req.body;
+    console.log('Extracted faculty_id:', faculty_id, 'subject_id:', subject_id);
+    
+    if (!faculty_id || !subject_id) {
+        console.log('Missing required fields - faculty_id:', faculty_id, 'subject_id:', subject_id);
+        return res.status(400).json({ message: 'Faculty ID and Subject ID are required.' });
+    }
+    try {
+        console.log('Calling adminModel.removeSubjectFromFaculty with:', faculty_id, subject_id);
+        await adminModel.removeSubjectFromFaculty(faculty_id, subject_id);
+        console.log('Successfully removed subject from faculty');
+        res.status(200).json({ message: 'Subject removed from faculty successfully.' });
+    } catch (error) {
+        console.error('Error removing subject from faculty:', error);
+        res.status(500).json({ message: 'Internal server error removing subject from faculty.' });
+    }
+};
+
+const getFacultyAssignments = async (req, res) => {
+    const { faculty_id } = req.params;
+    try {
+        const assignments = await adminModel.getFacultyAssignments(faculty_id);
+        res.status(200).json({ assignments });
+    } catch (error) {
+        console.error('Error getting faculty assignments:', error);
+        res.status(500).json({ message: 'Internal server error getting faculty assignments.' });
+    }
+};
+
+// --- STUDENT ENROLLMENT MANAGEMENT ---
+const enrollStudentInSubject = async (req, res) => {
+    const { student_id, subject_id } = req.body;
+    if (!student_id || !subject_id) {
+        return res.status(400).json({ message: 'Student ID and Subject ID are required.' });
+    }
+    try {
+        await adminModel.enrollStudentInSubject(student_id, subject_id);
+        res.status(200).json({ message: 'Student enrolled in subject successfully.' });
+    } catch (error) {
+        console.error('Error enrolling student in subject:', error);
+        res.status(500).json({ message: 'Internal server error enrolling student in subject.' });
+    }
+};
+
+const removeStudentFromSubject = async (req, res) => {
+    const { student_id, subject_id } = req.body;
+    if (!student_id || !subject_id) {
+        return res.status(400).json({ message: 'Student ID and Subject ID are required.' });
+    }
+    try {
+        await adminModel.removeStudentFromSubject(student_id, subject_id);
+        res.status(200).json({ message: 'Student removed from subject successfully.' });
+    } catch (error) {
+        console.error('Error removing student from subject:', error);
+        res.status(500).json({ message: 'Internal server error removing student from subject.' });
+    }
+};
+
+const getStudentEnrollments = async (req, res) => {
+    const { student_id } = req.params;
+    try {
+        const enrollments = await adminModel.getStudentEnrollments(student_id);
+        res.status(200).json({ enrollments });
+    } catch (error) {
+        console.error('Error getting student enrollments:', error);
+        res.status(500).json({ message: 'Internal server error getting student enrollments.' });
+    }
+};
+
+const getSubjectEnrollments = async (req, res) => {
+    const { subject_id } = req.params;
+    try {
+        const enrollments = await adminModel.getSubjectEnrollments(subject_id);
+        res.status(200).json({ enrollments });
+    } catch (error) {
+        console.error('Error getting subject enrollments:', error);
+        res.status(500).json({ message: 'Internal server error getting subject enrollments.' });
+    }
+};
+
 module.exports = {
     registerAdmin,
     loginAdmin,
@@ -307,5 +548,19 @@ module.exports = {
     getSubjects,
     createSubject,
     updateSubject,
-    deleteSubject
+    deleteSubject,
+    getAttendanceThreshold,
+    updateAttendanceThreshold,
+    backupData,
+    printAttendanceSheet,
+    getDashboardStats,
+    getAttendanceStats,
+    getDefaultersList,
+    assignSubjectToFaculty,
+    removeSubjectFromFaculty,
+    getFacultyAssignments,
+    enrollStudentInSubject,
+    removeStudentFromSubject,
+    getStudentEnrollments,
+    getSubjectEnrollments
 };

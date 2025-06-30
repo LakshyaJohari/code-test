@@ -11,13 +11,13 @@ import {
 } from "lucide-react";
 
 export default function Sidebar({ currentPage, navigateTo, onLogout }) {
-  // Updated navItems array
+  // Updated navItems array - Following recommended flow order
   const navItems = [
     { path: "Home", label: "Home", icon: LayoutDashboard },
-    { path: "Departments", label: "Departments", icon: Building }, // <-- New Department link
-    { path: "Subjects", label: "Subjects", icon: Book },
-    { path: "Students", label: "Students", icon: User },
-    { path: "Faculty", label: "Faculty", icon: User },
+    { path: "Departments", label: "Departments", icon: Building }, // 1. Departments first
+    { path: "Faculty", label: "Faculty", icon: User }, // 2. Faculty second
+    { path: "Subjects", label: "Subjects", icon: Book }, // 3. Subjects third
+    { path: "Students", label: "Students", icon: User }, // 4. Students fourth
     { path: "Defaulters", label: "Defaulters", icon: ShieldAlert },
     { path: "FaceRegister", label: "Face Register", icon: "📷" },
     { path: "Settings", label: "Settings", icon: Settings },

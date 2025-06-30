@@ -177,7 +177,7 @@ export default function EnrolledStudents({
                 <tbody>
                   {displayStudents.map((student) => (
                     <tr
-                      key={student.id}
+                      key={student.student_id}
                       className="border-b hover:bg-blue-50 cursor-pointer transition-colors"
                       onClick={() => handleStudentClick(student)}
                     >

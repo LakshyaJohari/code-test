@@ -1,12 +1,42 @@
-// Defines API routes for attendance management.
+// Defines API routes for attendance management
 const express = require('express');
-const { startAttendanceSession, endAttendanceSession, markStudentAttendance, getStudentCalendarAttendance } = require('../controllers/attendanceController');
-const authMiddleware = require('../middleware/authMiddleWare'); // Middleware to protect routes (fixed case)
-
 const router = express.Router();
 
-router.post('/start', authMiddleware, startAttendanceSession); // Start a new attendance session
-router.post('/:session_id/end', authMiddleware, endAttendanceSession); // End an attendance session
-router.get('/subjects/:subject_id/students/:student_id/calendar', authMiddleware, getStudentCalendarAttendance); // Get attendance data for student calendar view
+const {
+    startAttendanceSession,
+    generateNextQRCode,
+    endAttendanceSession,
+    markStudentAttendance,
+    getStudentCalendarAttendance,
+    getAdminStudentCalendarAttendance,
+    overrideAttendance,
+    submitAttendance
+} = require('../controllers/attendanceController');
+
+const { authMiddleware, requireAdminOrFaculty } = require('../middleware/authMiddleware');
+const { requireAdmin } = require('../middleware/accessControlMiddleware');
+
+// Protect routes using appropriate middleware
+
+// Override attendance – only Admin or Faculty can do this
+router.post('/student/:studentId/attendance/override', authMiddleware, requireAdminOrFaculty, overrideAttendance);
+
+// Start a new attendance session (Admin or Faculty)
+router.post('/start', authMiddleware, requireAdminOrFaculty, startAttendanceSession);
+
+// Generate next QR code for active session (Faculty only)
+router.post('/:session_id/generate-qr', authMiddleware, requireAdminOrFaculty, generateNextQRCode);
+
+// End an attendance session (Admin or Faculty)
+router.post('/:session_id/end', authMiddleware, requireAdminOrFaculty, endAttendanceSession);
+
+// Submit attendance with weight (Faculty only)
+router.post('/:session_id/submit', authMiddleware, requireAdminOrFaculty, submitAttendance);
+
+// Get attendance data for student calendar view (Admin only - no assignment required)
+router.get('/admin/subjects/:subject_id/students/:student_id/calendar', authMiddleware, requireAdmin, getAdminStudentCalendarAttendance);
+
+// Get attendance data for student calendar view (Faculty only - requires assignment)
+router.get('/subjects/:subject_id/students/:student_id/calendar', authMiddleware, requireAdminOrFaculty, getStudentCalendarAttendance);
 
 module.exports = router;

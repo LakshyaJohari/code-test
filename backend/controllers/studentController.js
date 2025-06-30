@@ -1,6 +1,6 @@
 const studentModel = require('../models/studentModel');
 const attendanceModel = require('../models/attendanceModel');
-const { comparePassword, hashPassword } = require('../utils/passwordHasher');
+const { comparePassword } = require('../utils/passwordHasher');
 const { generateToken } = require('../config/jwt');
 
 // Student Login
@@ -31,17 +31,17 @@ const loginStudent = async (req, res) => {
         });
     } catch (error) {
         console.error('Student login error:', error);
-        res.status(500).json({ message: 'Internal server error during login.' });
+        res.status(500).json({ message: 'Internal server error during student login.' });
     }
 };
 
-// Student Profile
+// Student Profile (for logged-in student)
 const getMyStudentProfile = async (req, res) => {
     const studentId = req.student.id;
     try {
-        const student = await studentModel.findStudentByRollNumber(req.student.roll_number);
-        if (!student || student.student_id !== studentId) {
-            return res.status(404).json({ message: 'Student profile not found or mismatch.' });
+        const student = await studentModel.findStudentById(studentId);
+        if (!student) {
+            return res.status(404).json({ message: 'Student profile not found.' });
         }
         res.status(200).json({
             id: student.student_id,
@@ -50,7 +50,8 @@ const getMyStudentProfile = async (req, res) => {
             email: student.email,
             department_id: student.department_id,
             current_year: student.current_year,
-            section: student.section
+            section: student.section,
+            department_name: student.department_name
         });
     } catch (error) {
         console.error('Error getting student profile:', error);
@@ -58,19 +59,25 @@ const getMyStudentProfile = async (req, res) => {
     }
 };
 
-// Student Marking Attendance (secure version)
+// Student Marking Attendance (secure version with enhanced QR validation)
 const markAttendanceByLoggedInStudent = async (req, res) => {
     const studentId = req.student.id;
-    const { session_code } = req.body;
+    const { qr_code_data } = req.body;
 
-    if (!session_code) {
-        return res.status(400).json({ message: 'Session code is required.' });
+    if (!qr_code_data) {
+        return res.status(400).json({ message: 'QR code data is required.' });
     }
 
     try {
-        const session = await attendanceModel.findOpenSessionByQrCode(session_code);
+        // Enhanced QR validation with expiration check
+        const session = await attendanceModel.getActiveSessionByQRCode(qr_code_data);
         if (!session) {
-            return res.status(404).json({ message: 'Active attendance session not found with this code.' });
+            // Check if QR exists but is expired
+            const isExpired = await attendanceModel.isQRCodeExpired(qr_code_data);
+            if (isExpired) {
+                return res.status(400).json({ message: 'QR code has expired. Please scan the current QR code.' });
+            }
+            return res.status(404).json({ message: 'Active attendance session not found with this QR code.' });
         }
 
         const isStudentEnrolled = await studentModel.isStudentEnrolledInSubject(studentId, session.subject_id);
@@ -78,13 +85,18 @@ const markAttendanceByLoggedInStudent = async (req, res) => {
             return res.status(400).json({ message: 'You are not enrolled in this subject for this session.' });
         }
 
+        // Check if student already marked attendance for this session
+        const existingRecord = await attendanceModel.getSessionAttendanceRecords(session.session_id);
+        const alreadyMarked = existingRecord.find(record => record.student_id === studentId);
+        if (alreadyMarked) {
+            return res.status(400).json({ 
+                message: 'Attendance already marked for this session.',
+                current_status: alreadyMarked.status
+            });
+        }
+
         const attendedAt = new Date().toISOString();
-        const record = await attendanceModel.createOrUpdateAttendanceRecord(
-            session.session_id,
-            studentId,
-            'present',
-            attendedAt
-        );
+        const record = await attendanceModel.markAttendance(session.session_id, studentId, 'present', attendedAt);
 
         res.status(200).json({
             message: 'Attendance marked successfully!',
@@ -92,7 +104,8 @@ const markAttendanceByLoggedInStudent = async (req, res) => {
                 session_id: record.session_id,
                 student_id: record.student_id,
                 status: record.status,
-                attended_at: record.attended_at
+                attended_at: record.attended_at,
+                qr_sequence: session.qr_sequence_number
             }
         });
     } catch (error) {
@@ -102,22 +115,12 @@ const markAttendanceByLoggedInStudent = async (req, res) => {
 };
 
 // Student View Own Attendance History (Calendar view)
-const getMyAttendanceCalendar = async (req, res) => {
+const getStudentCalendar = async (req, res) => {
     const studentId = req.student.id;
-    const { subject_id, month, year } = req.query;
+    const { subject_id, start_date, end_date } = req.query;
 
-    if (!subject_id || !month || !year || isNaN(parseInt(month)) || isNaN(parseInt(year))) {
-        return res.status(400).json({ message: 'Subject ID, Month, and Year are required query parameters.' });
-    }
-
-    const parsedMonth = parseInt(month);
-    const parsedYear = parseInt(year);
-
-    if (parsedMonth < 1 || parsedMonth > 12) {
-        return res.status(400).json({ message: 'Month must be between 1 and 12.' });
-    }
-    if (parsedYear < 2000 || parsedYear > 2100) {
-        return res.status(400).json({ message: 'Year must be a valid number (e.g., 2024).' });
+    if (!subject_id || !start_date || !end_date) {
+        return res.status(400).json({ message: 'Subject ID, start date, and end date are required query parameters.' });
     }
 
     try {
@@ -126,67 +129,17 @@ const getMyAttendanceCalendar = async (req, res) => {
             return res.status(403).json({ message: 'You are not enrolled in this subject.' });
         }
 
-        // --- CRUCIAL FIX HERE: Ensure backticks (`) are used for template literals ---
-        const formattedMonth = String(parsedMonth).padStart(2, '0');
-        const startDate = `${parsedYear}-${formattedMonth}-01`; // Use BACKTICKS here
-        const endDate = `${parsedYear}-${formattedMonth}-${new Date(parsedYear, parsedMonth, 0).getDate()}`; // Use BACKTICKS here
-
-        const attendanceRecords = await attendanceModel.getStudentAttendanceBySubjectAndDateRange(
+        const attendanceRecords = await studentModel.getStudentAttendanceCalendar(
             studentId,
             subject_id,
-            startDate,
-            endDate
+            start_date,
+            end_date
         );
 
-        const formattedCalendarData = {};
-        attendanceRecords.forEach(record => {
-            const date = record.session_date.toISOString().split('T')[0];
-            formattedCalendarData[date] = record.attendance_status;
-        });
-
-        res.status(200).json(formattedCalendarData);
+        res.status(200).json(attendanceRecords);
     } catch (error) {
         console.error('Error getting student calendar attendance:', error.message);
         res.status(500).json({ message: 'Internal server error getting calendar attendance.' });
-    }
-};
-
-// Register a new student
-const registerStudent = async (req, res) => {
-    const { name, roll_number, email, password, department_id, current_year, section } = req.body;
-    if (!name || !roll_number || !email || !password || !department_id) {
-        return res.status(400).json({ message: 'Name, roll number, email, password, and department_id are required.' });
-    }
-    try {
-        // Check if student already exists
-        const existingStudent = await studentModel.findStudentByRollNumber(roll_number);
-        if (existingStudent) {
-            return res.status(409).json({ message: 'Student with this roll number already exists.' });
-        }
-        // Hash password
-        const password_hash = await hashPassword(password);
-        // Insert new student
-        const newStudent = await studentModel.createStudent({
-            name,
-            roll_number,
-            email,
-            password_hash,
-            department_id,
-            current_year,
-            section
-        });
-        res.status(201).json({ message: 'Student registered successfully!', student: {
-            id: newStudent.student_id,
-            roll_number: newStudent.roll_number,
-            name: newStudent.name,
-            email: newStudent.email,
-            department_id: newStudent.department_id,
-            current_year: newStudent.current_year,
-            section: newStudent.section
-        }});
-    } catch (error) {
-        console.error('Student registration error:', error);
-        res.status(500).json({ message: 'Internal server error during registration.' });
     }
 };
 
@@ -194,6 +147,5 @@ module.exports = {
     loginStudent,
     getMyStudentProfile,
     markAttendanceByLoggedInStudent,
-    getMyAttendanceCalendar,
-    registerStudent
+    getStudentCalendar
 };

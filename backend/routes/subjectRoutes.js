@@ -1,7 +1,7 @@
 // Defines API routes related to subjects (e.g., getting students for a subject).
 const express = require('express');
 const { getSubjectStudents } = require('../controllers/subjectController');
-const authMiddleware = require('../middleware/authMiddleWare'); // Middleware to protect routes (fixed case)
+const { authMiddleware } = require('../middleware/authMiddleware'); // Fixed: use destructuring
 
 const router = express.Router();
 

@@ -1,7 +1,8 @@
 // src/pages/students/StudentsList.jsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Filter, Upload, Printer } from 'lucide-react';
+import { Filter, Upload, Printer, Calendar as CalendarIcon } from 'lucide-react';
 import Pagination from '../../components/common/Pagination';
+import Calendar from '../subjects/Calendar.jsx';
 
 export default function StudentsList({ 
   students, 
@@ -15,6 +16,8 @@ export default function StudentsList({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterYear, setFilterYear] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const filterMenuRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -86,8 +89,27 @@ export default function StudentsList({
       }
   };
 
+  const handleCalendarClick = (student) => {
+    setSelectedStudent(student);
+    setIsCalendarOpen(true);
+  };
+
+  const handleCloseCalendar = () => {
+    setIsCalendarOpen(false);
+    setSelectedStudent(null);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md">
+      {isCalendarOpen && selectedStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+          <Calendar
+            subject={null}
+            student={selectedStudent}
+            onBack={handleCloseCalendar}
+          />
+        </div>
+      )}
       <div className="p-4 sm:p-6">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -122,6 +144,7 @@ export default function StudentsList({
                 <th className="py-2 px-4">Roll No.</th>
                 <th className="py-2 px-4">Start Year</th>
                 <th className="py-2 px-4">Department</th>
+                <th className="py-2 px-4 text-center">Calendar</th>
                 {/* --- FIX: Add no-print class to Actions header --- */}
                 <th className="py-2 px-4 text-right no-print">Actions</th>
               </tr>
@@ -133,6 +156,16 @@ export default function StudentsList({
                   <td className="py-3 px-4">{student.roll_number}</td>
                   <td className="py-3 px-4">{student.current_year}</td>
                   <td className="py-3 px-4">{student.department_name}</td>
+                  <td className="py-3 px-4 text-center">
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-100"
+                      title="View Attendance Calendar"
+                      onClick={() => handleCalendarClick(student)}
+                    >
+                      <CalendarIcon size={18} className="text-blue-600" />
+                    </button>
+                  </td>
                   {/* --- FIX: Add no-print class to Actions cell --- */}
                   <td className="py-3 px-4 text-right no-print">
                      <button onClick={() => onEdit(student)} className="text-blue-500 hover:underline font-semibold text-sm mr-4">Edit</button>

@@ -1,15 +1,33 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   ChevronRight,
   Printer,
   Search,
   AlertTriangle,
+  Calendar as CalendarIcon
 } from "lucide-react";
+import { subjectsAPI } from "../api/subjects";
 
-const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
+const SubjectDetail = ({ subject, onBack, onSelectStudent }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showLowAttendanceOnly, setShowLowAttendanceOnly] = useState(false);
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!subject) return;
+    setLoading(true);
+    setError("");
+    subjectsAPI.getSubjectStudents(subject.id || subject.subject_id)
+      .then((students) => setEnrolledStudents(students))
+      .catch((err) => {
+        setError(err.message || "Failed to fetch enrolled students.");
+        setEnrolledStudents([]);
+      })
+      .finally(() => setLoading(false));
+  }, [subject]);
 
   const getAttendanceBarColor = (percentage) => {
     if (percentage < 75) return "bg-red-500";
@@ -17,7 +35,7 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
   };
 
   const filteredStudents = useMemo(() => {
-    return students
+    return enrolledStudents
       .filter((student) => {
         const term = searchTerm.toLowerCase();
         return (
@@ -28,7 +46,7 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
       .filter((student) => {
         return !showLowAttendanceOnly || student.attendance < 75;
       });
-  }, [students, searchTerm, showLowAttendanceOnly]);
+  }, [enrolledStudents, searchTerm, showLowAttendanceOnly]);
 
   // --- ✨ NEW: Print Functionality ---
   const handlePrint = () => {
@@ -180,6 +198,7 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance %</th>
                 <th className="px-6 py-3"></th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Calendar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -211,6 +230,16 @@ const SubjectDetail = ({ subject, students, onBack, onSelectStudent }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600"/>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-100"
+                        title="View Attendance Calendar"
+                        onClick={e => { e.stopPropagation(); onSelectStudent(student); }}
+                      >
+                        <CalendarIcon size={18} className="text-blue-600" />
+                      </button>
                     </td>
                   </tr>
                 ))

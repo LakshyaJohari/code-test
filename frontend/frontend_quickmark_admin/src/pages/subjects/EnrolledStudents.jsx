@@ -1,12 +1,12 @@
 // src/pages/subjects/EnrolledStudents.jsx
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 // --- 1. IMPORT: Add ArrowLeft, Upload, and Printer icons ---
-import { ArrowLeft, Upload, Printer, Filter } from "lucide-react";
+import { ArrowLeft, Upload, Printer, Filter, Calendar as CalendarIcon } from "lucide-react";
 import Calendar from "./Calendar.jsx";
+import { studentEnrollmentAPI } from "../../utils/api";
 
 export default function EnrolledStudents({
   subject,
-  allStudents,
   onBack,
   onImportStudents,
 }) {
@@ -14,18 +14,26 @@ export default function EnrolledStudents({
   const [selectedStudent, setSelectedStudent] = useState(null);
   // --- 2. REF: Create a reference for the hidden file input ---
   const [filterDefaulters, setFilterDefaulters] = useState(false);
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const fileInputRef = useRef(null);
   const printableContentRef = useRef(null);
 
-  const enrolledStudents = useMemo(() => {
-    if (!subject) return [];
-    // This logic correctly finds students enrolled in the specific subject
-    return allStudents.filter(
-      (student) =>
-        student.department === subject.department &&
-        student.startYear === subject.startYear
-    );
-  }, [subject, allStudents]);
+  useEffect(() => {
+    if (!subject) return;
+    setLoading(true);
+    setError("");
+    studentEnrollmentAPI.getSubjectEnrollments(subject.subject_id)
+      .then((res) => {
+        setEnrolledStudents(res.enrollments || []);
+      })
+      .catch((err) => {
+        setError(err.message || "Failed to fetch enrolled students.");
+        setEnrolledStudents([]);
+      })
+      .finally(() => setLoading(false));
+  }, [subject]);
 
   // --- 3. LOGIC: Create a new memoized list for display ---
   // This will show either all students or only the filtered ones.
@@ -172,6 +180,7 @@ export default function EnrolledStudents({
                     <th className="p-3">Roll No.</th>
                     <th className="p-3">Email</th>
                     <th className="p-3">Overall Attendance</th>
+                    <th className="p-3">Calendar</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -188,7 +197,6 @@ export default function EnrolledStudents({
                         <div className="flex items-center">
                           <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
                             <div
-                              // --- THIS IS THE CORRECTED LINE ---
                               className={`h-2.5 rounded-full ${
                                 student.attendance >= 75
                                   ? "bg-primary"
@@ -201,6 +209,16 @@ export default function EnrolledStudents({
                             {student.attendance}%
                           </span>
                         </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center p-2 rounded hover:bg-gray-100"
+                          title="View Attendance Calendar"
+                          onClick={e => { e.stopPropagation(); handleStudentClick(student); }}
+                        >
+                          <CalendarIcon size={18} className="text-blue-600" />
+                        </button>
                       </td>
                     </tr>
                   ))}

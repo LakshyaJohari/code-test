@@ -7,9 +7,9 @@ export default function SubjectsManager() {
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [newSubject, setNewSubject] = useState({ subject_name: "", department_id: "", year: "", section: "", batch_name: "" });
+    const [newSubject, setNewSubject] = useState({ subject_name: "", subject_code: "", department_id: "", year: "", section: "", semester: "1", batch_name: "" });
     const [editingSubject, setEditingSubject] = useState(null);
-    const [editSubject, setEditSubject] = useState({ subject_id: "", subject_name: "", department_id: "", year: "", section: "", batch_name: "" });
+    const [editSubject, setEditSubject] = useState({ subject_id: "", subject_name: "", subject_code: "", department_id: "", year: "", section: "", semester: "1", batch_name: "" });
 
     const getAdminToken = () => localStorage.getItem("adminToken");
 
@@ -48,14 +48,16 @@ export default function SubjectsManager() {
                 "http://localhost:3700/api/admin/subjects",
                 {
                     subject_name: newSubject.subject_name,
+                    subject_code: newSubject.subject_code,
                     department_id: newSubject.department_id,
                     year: parseInt(newSubject.year),
                     section: newSubject.section,
+                    semester: parseInt(newSubject.semester),
                     batch_name: newSubject.batch_name.trim() || null,
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            setNewSubject({ subject_name: "", department_id: "", year: "", section: "", batch_name: "" });
+            setNewSubject({ subject_name: "", subject_code: "", department_id: "", year: "", section: "", semester: "1", batch_name: "" });
             fetchData();
         } catch (err) {
             setError("Failed to create subject.");
@@ -75,15 +77,17 @@ export default function SubjectsManager() {
                 `http://localhost:3700/api/admin/subjects/${editingSubject.subject_id}`,
                 {
                     subject_name: editSubject.subject_name,
+                    subject_code: editSubject.subject_code,
                     department_id: editSubject.department_id,
                     year: parseInt(editSubject.year),
                     section: editSubject.section,
+                    semester: parseInt(editSubject.semester),
                     batch_name: editSubject.batch_name.trim() || null,
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setEditingSubject(null);
-            setEditSubject({ subject_id: "", subject_name: "", department_id: "", year: "", section: "", batch_name: "" });
+            setEditSubject({ subject_id: "", subject_name: "", subject_code: "", department_id: "", year: "", section: "", semester: "1", batch_name: "" });
             fetchData();
         } catch (err) {
             setError("Failed to update subject.");
@@ -117,6 +121,14 @@ export default function SubjectsManager() {
                     className="px-4 py-2 border rounded-lg"
                     required
                 />
+                <input
+                    type="text"
+                    placeholder="Subject Code"
+                    value={newSubject.subject_code}
+                    onChange={(e) => setNewSubject({ ...newSubject, subject_code: e.target.value })}
+                    className="px-4 py-2 border rounded-lg"
+                    required
+                />
                 <select
                     value={newSubject.department_id}
                     onChange={(e) => setNewSubject({ ...newSubject, department_id: e.target.value })}
@@ -146,6 +158,15 @@ export default function SubjectsManager() {
                     className="px-4 py-2 border rounded-lg"
                     required
                 />
+                <select
+                    value={newSubject.semester}
+                    onChange={(e) => setNewSubject({ ...newSubject, semester: e.target.value })}
+                    className="px-4 py-2 border rounded-lg"
+                    required
+                >
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                </select>
                 <input
                     type="text"
                     placeholder="Batch Name (Optional)"
@@ -187,9 +208,11 @@ export default function SubjectsManager() {
                                             setEditSubject({
                                                 subject_id: subj.subject_id,
                                                 subject_name: subj.subject_name,
+                                                subject_code: subj.subject_code,
                                                 department_id: subj.department_id,
                                                 year: subj.year,
                                                 section: subj.section,
+                                                semester: subj.semester?.toString() || "1",
                                                 batch_name: subj.batch_name,
                                             });
                                         }}
@@ -224,6 +247,14 @@ export default function SubjectsManager() {
                                 className="w-full px-3 py-2 border rounded-lg mb-2"
                                 required
                             />
+                            <input
+                                type="text"
+                                placeholder="Subject Code"
+                                value={editSubject.subject_code}
+                                onChange={(e) => setEditSubject({ ...editSubject, subject_code: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg mb-2"
+                                required
+                            />
                             <select
                                 value={editSubject.department_id}
                                 onChange={(e) => setEditSubject({ ...editSubject, department_id: e.target.value })}
@@ -253,6 +284,15 @@ export default function SubjectsManager() {
                                 className="w-full px-3 py-2 border rounded-lg mb-2"
                                 required
                             />
+                            <select
+                                value={editSubject.semester}
+                                onChange={(e) => setEditSubject({ ...editSubject, semester: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg mb-2"
+                                required
+                            >
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                            </select>
                             <input
                                 type="text"
                                 placeholder="Batch Name (Optional)"
@@ -265,7 +305,7 @@ export default function SubjectsManager() {
                                     type="button"
                                     onClick={() => {
                                         setEditingSubject(null);
-                                        setEditSubject({ subject_id: "", subject_name: "", department_id: "", year: "", section: "", batch_name: "" });
+                                        setEditSubject({ subject_id: "", subject_name: "", subject_code: "", department_id: "", year: "", section: "", semester: "1", batch_name: "" });
                                     }}
                                     className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
                                 >

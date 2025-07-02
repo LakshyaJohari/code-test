@@ -2,16 +2,18 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { List, LayoutGrid, Filter, X } from "lucide-react";
 import Pagination from "../../components/common/Pagination";
+import axios from "axios";
 // import AddEditSubjectModal from "./AddEditSubjectModal.jsx";
 
 // The AddEditSubjectModal component remains unchanged
 const AddEditSubjectModal = ({ subject, onClose, onSave, allDepartments, allFaculty }) => {
   const [formData, setFormData] = useState({
     subject_name: subject?.subject_name || "",
+    subject_code: subject?.subject_code || "",
     department_id: subject?.department_id || "",
     year: subject?.year || new Date().getFullYear(),
     section: subject?.section || "A",
-    semester: subject?.semester || 1,
+    semester: subject?.semester ? subject.semester.toString() : "1",
   });
 
   const handleChange = (e) => {
@@ -21,11 +23,16 @@ const AddEditSubjectModal = ({ subject, onClose, onSave, allDepartments, allFacu
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.subject_name || !formData.department_id || !formData.section || !formData.semester) {
+    if (!formData.subject_name || !formData.subject_code || !formData.department_id || !formData.section || !formData.semester) {
       alert("Please fill out all required fields.");
       return;
     }
-    onSave(formData);
+    console.log('Submitting subject formData:', formData);
+    onSave({
+      ...formData,
+      year: parseInt(formData.year),
+      semester: parseInt(formData.semester),
+    });
   };
 
   return (
@@ -52,6 +59,19 @@ const AddEditSubjectModal = ({ subject, onClose, onSave, allDepartments, allFacu
                 type="text"
                 name="subject_name"
                 value={formData.subject_name}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Subject Code *
+              </label>
+              <input
+                type="text"
+                name="subject_code"
+                value={formData.subject_code}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                 required
@@ -119,8 +139,8 @@ const AddEditSubjectModal = ({ subject, onClose, onSave, allDepartments, allFacu
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
-                <option value={1}>Semester 1</option>
-                <option value={2}>Semester 2</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
               </select>
             </div>
           </div>
@@ -261,6 +281,7 @@ export default function SubjectsList({
   };
   const handleSave = async (data) => {
     try {
+      console.log('Data being sent to backend:', data);
       if (editingSubject) {
         await onUpdateSubject(editingSubject.subject_id, data);
       } else {

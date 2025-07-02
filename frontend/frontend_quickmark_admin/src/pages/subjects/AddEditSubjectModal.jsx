@@ -3,13 +3,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 
 export default function AddEditSubjectModal({ subject, allDepartments, allFaculty, onClose, onSave }) {
-  const [formData, setFormData] = useState({ name: '', department: '', faculty: '', startYear: new Date().getFullYear() });
+  const [formData, setFormData] = useState({ name: '', subject_code: '', department: '', faculty: '', startYear: new Date().getFullYear() });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (subject) {
       setFormData({
         name: subject.name || '',
+        subject_code: subject.subject_code || '',
         department: subject.department || '',
         faculty: subject.faculty || '',
         startYear: subject.startYear || new Date().getFullYear(),
@@ -25,6 +26,9 @@ export default function AddEditSubjectModal({ subject, allDepartments, allFacult
     const newErrors = {};
     if (!formData.name.trim()) {
         newErrors.name = "Subject name is required.";
+    }
+    if (!formData.subject_code.trim()) {
+        newErrors.subject_code = "Subject code is required.";
     }
     // Check if the entered department exists in the master list.
     if (!departmentNames.includes(formData.department)) {
@@ -74,6 +78,25 @@ export default function AddEditSubjectModal({ subject, allDepartments, allFacult
               onChange={handleChange}
               className={`w-full p-2 border rounded-md ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
             />
+          </div>
+          
+          <div>
+            <label htmlFor="subject_code" className="block text-sm font-medium text-gray-700 mb-1">Subject Code</label>
+            <input
+              id="subject_code"
+              type="text"
+              name="subject_code"
+              value={formData.subject_code}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md ${errors.subject_code ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="e.g. DE101"
+            />
+            {errors.subject_code && (
+              <div className="flex items-center text-red-600 text-xs mt-1">
+                <AlertCircle size={14} className="mr-1" />
+                {errors.subject_code}
+              </div>
+            )}
           </div>
           
           {/* --- UPDATED: Department field with native autocomplete and validation --- */}

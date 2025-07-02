@@ -1,5 +1,5 @@
 // API utility for admin frontend
-const API_BASE_URL = 'http://localhost:3700/api';
+const API_BASE_URL = 'https://quickmark-backend-vcls.onrender.com/api';
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {
@@ -383,6 +383,7 @@ export const dataTransformers = {
       console.log('Subject transformation - Input:', subjectData);
       const transformed = {
         subject_name: subjectData.subject_name,
+        subject_code: subjectData.subject_code,
         department_id: subjectData.department_id,
         year: subjectData.year,
         section: subjectData.section,

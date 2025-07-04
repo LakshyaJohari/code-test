@@ -80,6 +80,20 @@ export default function Dashboard({ allStudents, allSubjects, allFaculty, allDep
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <InfoCard
+          title="Total Departments"
+          value={stats.departments}
+          navigate={navigateTo}
+          linkTo="Departments"
+          IconComponent={Building}
+        />
+        <InfoCard
+          title="Total Faculty"
+          value={stats.faculties}
+          navigate={navigateTo}
+          linkTo="Faculty"
+          IconComponent={GraduationCap}
+        />
+        <InfoCard
           title="Total Subjects"
           value={stats.subjects}
           navigate={navigateTo}
@@ -99,20 +113,6 @@ export default function Dashboard({ allStudents, allSubjects, allFaculty, allDep
           navigate={navigateTo}
           linkTo="Defaulters"
           IconComponent={AlertTriangle}
-        />
-        <InfoCard
-          title="Total Faculty"
-          value={stats.faculties}
-          navigate={navigateTo}
-          linkTo="Faculty"
-          IconComponent={GraduationCap}
-        />
-        <InfoCard
-          title="Departments"
-          value={stats.departments}
-          navigate={navigateTo}
-          linkTo="Departments"
-          IconComponent={Building}
         />
         <InfoCard
           title="Settings"

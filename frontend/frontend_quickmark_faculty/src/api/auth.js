@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3700/api';
+const API_BASE_URL = 'https://quickmark-backend-vcls.onrender.com/api';
 
 // Create axios instance with default config
 const api = axios.create({

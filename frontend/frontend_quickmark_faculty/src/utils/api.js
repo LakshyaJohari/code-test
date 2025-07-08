@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Create axios instance with base configuration
-const api = axios.create({
-    baseURL: 'http://localhost:3700/api',
+export const api = axios.create({
+    baseURL: 'https://quickmark-backend-vcls.onrender.com/api',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -49,6 +49,4 @@ api.interceptors.response.use(
         }
         return Promise.reject(error);
     }
-);
-
-export { api }; 
+); 

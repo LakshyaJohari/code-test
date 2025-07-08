@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3700/api';
+const API_BASE_URL = 'https://quickmark-backend-vcls.onrender.com/api';
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {

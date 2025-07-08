@@ -76,11 +76,16 @@ export default function App() {
   };
 
   // --- Check authentication on mount ---
+  // useEffect(() => {
+  //   const token = localStorage.getItem('adminToken');
+  //   if (token) {
+  //     setIsAuthenticated(true);
+  //   }
+  //   setIsLoading(false);
+  // }, []);
+
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      setIsAuthenticated(true);
-    }
+    setIsAuthenticated(false); // Always show login page first for testing
     setIsLoading(false);
   }, []);
 
